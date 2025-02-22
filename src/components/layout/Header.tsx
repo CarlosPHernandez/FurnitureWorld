@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
 import {
   Search,
@@ -12,16 +11,34 @@ import {
   LogOut,
   User,
 } from 'lucide-react'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
-export default function Header() {
-  const [user, setUser] = useState<any>(null)
+interface HeaderProps {
+  title?: string
+}
+
+interface UserMetadata {
+  name?: string;
+  avatar_url?: string;
+  [key: string]: string | undefined;
+}
+
+interface UserData {
+  id: string;
+  email?: string;
+  user_metadata?: UserMetadata;
+}
+
+export default function Header({ title }: HeaderProps) {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [user, setUser] = useState<UserData | null>(null)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const router = useRouter()
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const supabase = createClientComponentClient({
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  })
 
   useEffect(() => {
     const getUser = async () => {

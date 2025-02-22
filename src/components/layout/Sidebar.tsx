@@ -5,19 +5,11 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
-  Users,
-  Wallet,
-  Database,
-  FileText,
-  Settings,
-  Receipt,
-  ClipboardList,
-  Download,
-  Palette,
-  Search,
-  MapPin,
   Package,
+  MapPin,
+  Receipt,
   FileSearch,
+  Search,
   BoxIcon,
 } from 'lucide-react'
 

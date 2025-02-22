@@ -28,7 +28,7 @@ interface ActiveDelivery {
 
 const metrics = [
   { 
-    title: 'Today\'s Deliveries',
+    title: "Today's Deliveries",
     value: '0',
     change: '+0',
     icon: Truck,

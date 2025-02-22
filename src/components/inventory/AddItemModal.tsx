@@ -1,75 +1,25 @@
 'use client'
 
 import { useState } from 'react'
-import { X } from 'lucide-react'
-import Image from 'next/image'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { Plus } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+
+type ItemStatus = 'active' | 'discontinued' | 'seasonal'
+type Season = 'spring' | 'summer' | 'fall' | 'winter'
+type QualityStatus = 'passed' | 'failed' | 'pending'
 
 interface AddItemModalProps {
   isOpen: boolean
   onClose: () => void
-  onAdd: (item: {
-    name: string
-    sku: string
-    category: string
-    quantity: number
-    minQuantity: number
-    price: number
-    cost: number
-    imageUrl: string
-    dimensions: {
-      length: number
-      width: number
-      height: number
-      unit: 'cm' | 'in'
-    }
-    weight: number
-    weightUnit: 'kg' | 'lb'
-    materials: string[]
-    finish: string
-    color: string
-    assemblyRequired: boolean
-    assemblyTime: number
-    warranty: {
-      duration: number
-      coverage: string
-    }
-    supplier: {
-      id: string
-      name: string
-      leadTime: number
-      minimumOrder: number
-      priceBreaks: {
-        quantity: number
-        price: number
-      }[]
-      rating: number
-    }
-    location: {
-      warehouse: string
-      aisle: string
-      shelf: string
-    }
-    status: 'active' | 'discontinued' | 'seasonal'
-    season?: 'spring' | 'summer' | 'fall' | 'winter'
-    tags: string[]
-    notes: string
-    qualityControl: {
-      lastInspection: string
-      inspector: string
-      status: 'passed' | 'failed' | 'pending'
-      issues?: string[]
-    }
-    customization: {
-      available: boolean
-      options?: {
-        type: string
-        choices: string[]
-        priceModifier: number
-      }[]
-    }
-  }) => void
+  onAdd: (item: any) => void
 }
 
 const categories = [
@@ -86,113 +36,109 @@ const categories = [
 ]
 
 export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalProps) {
-  const [formData, setFormData] = useState({
-    name: '',
-    sku: '',
-    category: '',
-    quantity: 0,
-    minQuantity: 0,
-    price: 0,
-    cost: 0,
-    imageUrl: '/download.jpg',
-    dimensions: {
-      length: 0,
-      width: 0,
-      height: 0,
-      unit: 'cm' as const
-    },
-    weight: 0,
-    weightUnit: 'kg' as 'kg' | 'lb',
-    materials: [] as string[],
-    finish: '',
-    color: '',
-    assemblyRequired: false,
-    assemblyTime: 0,
-    warranty: {
-      duration: 12,
-      coverage: 'Standard warranty'
-    },
-    supplier: {
-      id: '',
-      name: '',
-      leadTime: 7,
-      minimumOrder: 1,
-      priceBreaks: [] as { quantity: number; price: number }[],
-      rating: 5
-    },
-    location: {
-      warehouse: 'MAIN',
-      aisle: '',
-      shelf: ''
-    },
-    status: 'active' as 'active' | 'discontinued' | 'seasonal',
-    tags: [] as string[],
-    notes: '',
-    qualityControl: {
-      lastInspection: new Date().toISOString().split('T')[0],
-      inspector: '',
-      status: 'pending' as 'passed' | 'failed' | 'pending'
-    },
-    customization: {
-      available: false,
-      options: [] as { type: string; choices: string[]; priceModifier: number }[]
-    }
+  const [name, setName] = useState('')
+  const [sku, setSku] = useState('')
+  const [category, setCategory] = useState('')
+  const [quantity, setQuantity] = useState('')
+  const [price, setPrice] = useState('')
+  const [cost, setCost] = useState('')
+  const [imageUrl, setImageUrl] = useState('/download.jpg')
+  const [dimensions, setDimensions] = useState('0 x 0 x 0 cm')
+  const [weight, setWeight] = useState('')
+  const [weightUnit, setWeightUnit] = useState<'kg' | 'lb'>('kg')
+  const [materials, setMaterials] = useState('')
+  const [finish, setFinish] = useState('')
+  const [color, setColor] = useState('')
+  const [assemblyRequired, setAssemblyRequired] = useState(false)
+  const [assemblyTime, setAssemblyTime] = useState('')
+  const [warranty, setWarranty] = useState({ duration: 12, coverage: 'Standard warranty' })
+  const [supplier, setSupplier] = useState('')
+  const [location, setLocation] = useState({ warehouse: 'MAIN', aisle: '', shelf: '' })
+  const [status, setStatus] = useState<ItemStatus>('active')
+  const [season, setSeason] = useState<Season | ''>('')
+  const [tags, setTags] = useState('')
+  const [notes, setNotes] = useState('')
+  const [qualityControl, setQualityControl] = useState({
+    lastInspection: new Date().toISOString().split('T')[0],
+    inspector: '',
+    status: 'pending' as QualityStatus
+  })
+  const [customization, setCustomization] = useState({
+    available: false,
+    options: [] as { type: string; choices: string[]; priceModifier: number }[]
   })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onAdd(formData)
-    setFormData({
-      name: '',
-      sku: '',
-      category: '',
-      quantity: 0,
+    onAdd({
+      name,
+      sku,
+      category,
+      quantity: Number(quantity),
       minQuantity: 0,
-      price: 0,
-      cost: 0,
-      imageUrl: '/download.jpg',
+      price: Number(price),
+      cost: Number(cost),
+      imageUrl,
       dimensions: {
-        length: 0,
-        width: 0,
-        height: 0,
-        unit: 'cm'
+        length: Number(dimensions.split(' ')[0]),
+        width: Number(dimensions.split(' ')[2]),
+        height: Number(dimensions.split(' ')[4]),
+        unit: dimensions.split(' ')[6] as 'cm' | 'in'
       },
-      weight: 0,
-      weightUnit: 'kg',
-      materials: [],
-      finish: '',
-      color: '',
-      assemblyRequired: false,
-      assemblyTime: 0,
-      warranty: {
-        duration: 12,
-        coverage: 'Standard warranty'
-      },
+      weight: Number(weight),
+      weightUnit: weightUnit as 'kg' | 'lb',
+      materials: materials.split(',').map(m => m.trim()).filter(m => m),
+      finish,
+      color,
+      assemblyRequired,
+      assemblyTime: Number(assemblyTime),
+      warranty,
       supplier: {
         id: '',
-        name: '',
+        name: supplier,
         leadTime: 7,
         minimumOrder: 1,
         priceBreaks: [],
         rating: 5
       },
-      location: {
-        warehouse: 'MAIN',
-        aisle: '',
-        shelf: ''
-      },
-      status: 'active',
-      tags: [],
-      notes: '',
-      qualityControl: {
-        lastInspection: new Date().toISOString().split('T')[0],
-        inspector: '',
-        status: 'pending'
-      },
-      customization: {
-        available: false,
-        options: []
-      }
+      location,
+      status,
+      season,
+      tags: tags.split(',').map(t => t.trim()).filter(t => t),
+      notes,
+      qualityControl,
+      customization
+    })
+    setName('')
+    setSku('')
+    setCategory('')
+    setQuantity('')
+    setPrice('')
+    setCost('')
+    setImageUrl('/download.jpg')
+    setDimensions('0 x 0 x 0 cm')
+    setWeight('')
+    setWeightUnit('kg')
+    setMaterials('')
+    setFinish('')
+    setColor('')
+    setAssemblyRequired(false)
+    setAssemblyTime('')
+    setWarranty({ duration: 12, coverage: 'Standard warranty' })
+    setSupplier('')
+    setLocation({ warehouse: 'MAIN', aisle: '', shelf: '' })
+    setStatus('active')
+    setSeason('')
+    setTags('')
+    setNotes('')
+    setQualityControl({
+      lastInspection: new Date().toISOString().split('T')[0],
+      inspector: '',
+      status: 'pending'
+    })
+    setCustomization({
+      available: false,
+      options: []
     })
     onClose()
   }
@@ -217,8 +163,8 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
                 <label className="block text-sm font-medium mb-1">Name</label>
                 <input
                   type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   className="w-full p-2 border rounded-md"
                   required
                 />
@@ -227,8 +173,8 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
                 <label className="block text-sm font-medium mb-1">SKU</label>
                 <input
                   type="text"
-                  value={formData.sku}
-                  onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                  value={sku}
+                  onChange={(e) => setSku(e.target.value)}
                   className="w-full p-2 border rounded-md"
                   required
                 />
@@ -237,8 +183,8 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
                 <label className="block text-sm font-medium mb-1">Category</label>
                 <input
                   type="text"
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
                   className="w-full p-2 border rounded-md"
                   required
                 />
@@ -246,8 +192,8 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
               <div>
                 <label className="block text-sm font-medium mb-1">Status</label>
                 <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'discontinued' | 'seasonal' })}
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as ItemStatus)}
                   className="w-full p-2 border rounded-md"
                 >
                   <option value="active">Active</option>
@@ -266,8 +212,8 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
                 <label className="block text-sm font-medium mb-1">Price ($)</label>
                 <input
                   type="number"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
                   className="w-full p-2 border rounded-md"
                   min="0"
                   step="0.01"
@@ -278,8 +224,8 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
                 <label className="block text-sm font-medium mb-1">Cost ($)</label>
                 <input
                   type="number"
-                  value={formData.cost}
-                  onChange={(e) => setFormData({ ...formData, cost: Number(e.target.value) })}
+                  value={cost}
+                  onChange={(e) => setCost(e.target.value)}
                   className="w-full p-2 border rounded-md"
                   min="0"
                   step="0.01"
@@ -290,19 +236,8 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
                 <label className="block text-sm font-medium mb-1">Quantity</label>
                 <input
                   type="number"
-                  value={formData.quantity}
-                  onChange={(e) => setFormData({ ...formData, quantity: Number(e.target.value) })}
-                  className="w-full p-2 border rounded-md"
-                  min="0"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Min Quantity</label>
-                <input
-                  type="number"
-                  value={formData.minQuantity}
-                  onChange={(e) => setFormData({ ...formData, minQuantity: Number(e.target.value) })}
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
                   className="w-full p-2 border rounded-md"
                   min="0"
                   required
@@ -320,11 +255,8 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
                   <label className="block text-sm font-medium mb-1">Length</label>
                   <input
                     type="number"
-                    value={formData.dimensions.length}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      dimensions: { ...formData.dimensions, length: Number(e.target.value) }
-                    })}
+                    value={dimensions.split(' ')[0]}
+                    onChange={(e) => setDimensions(e.target.value + ' ' + dimensions.split(' ')[1] + ' ' + dimensions.split(' ')[2] + ' ' + dimensions.split(' ')[3] + ' ' + dimensions.split(' ')[4] + ' ' + dimensions.split(' ')[5] + ' ' + dimensions.split(' ')[6])}
                     className="w-full p-2 border rounded-md"
                     min="0"
                     required
@@ -334,11 +266,8 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
                   <label className="block text-sm font-medium mb-1">Width</label>
                   <input
                     type="number"
-                    value={formData.dimensions.width}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      dimensions: { ...formData.dimensions, width: Number(e.target.value) }
-                    })}
+                    value={dimensions.split(' ')[2]}
+                    onChange={(e) => setDimensions(dimensions.split(' ')[0] + ' ' + e.target.value + ' ' + dimensions.split(' ')[2] + ' ' + dimensions.split(' ')[3] + ' ' + dimensions.split(' ')[4] + ' ' + dimensions.split(' ')[5] + ' ' + dimensions.split(' ')[6])}
                     className="w-full p-2 border rounded-md"
                     min="0"
                     required
@@ -348,11 +277,8 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
                   <label className="block text-sm font-medium mb-1">Height</label>
                   <input
                     type="number"
-                    value={formData.dimensions.height}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      dimensions: { ...formData.dimensions, height: Number(e.target.value) }
-                    })}
+                    value={dimensions.split(' ')[4]}
+                    onChange={(e) => setDimensions(dimensions.split(' ')[0] + ' ' + dimensions.split(' ')[1] + ' ' + dimensions.split(' ')[2] + ' ' + dimensions.split(' ')[3] + ' ' + e.target.value + ' ' + dimensions.split(' ')[5] + ' ' + dimensions.split(' ')[6])}
                     className="w-full p-2 border rounded-md"
                     min="0"
                     required
@@ -364,8 +290,8 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
                   <label className="block text-sm font-medium mb-1">Weight</label>
                   <input
                     type="number"
-                    value={formData.weight}
-                    onChange={(e) => setFormData({ ...formData, weight: Number(e.target.value) })}
+                    value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
                     className="w-full p-2 border rounded-md"
                     min="0"
                     required
@@ -374,8 +300,8 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
                 <div>
                   <label className="block text-sm font-medium mb-1">Unit</label>
                   <select
-                    value={formData.weightUnit}
-                    onChange={(e) => setFormData({ ...formData, weightUnit: e.target.value as 'kg' | 'lb' })}
+                    value={weightUnit}
+                    onChange={(e) => setWeightUnit(e.target.value as 'kg' | 'lb')}
                     className="w-full p-2 border rounded-md"
                   >
                     <option value="kg">kg</option>
@@ -394,11 +320,8 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
                 <label className="block text-sm font-medium mb-1">Materials</label>
                 <input
                   type="text"
-                  value={formData.materials.join(', ')}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    materials: e.target.value.split(',').map(m => m.trim()).filter(m => m)
-                  })}
+                  value={materials}
+                  onChange={(e) => setMaterials(e.target.value)}
                   className="w-full p-2 border rounded-md"
                   placeholder="Enter materials separated by commas"
                 />
@@ -407,8 +330,8 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
                 <label className="block text-sm font-medium mb-1">Finish</label>
                 <input
                   type="text"
-                  value={formData.finish}
-                  onChange={(e) => setFormData({ ...formData, finish: e.target.value })}
+                  value={finish}
+                  onChange={(e) => setFinish(e.target.value)}
                   className="w-full p-2 border rounded-md"
                 />
               </div>
@@ -416,8 +339,8 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
                 <label className="block text-sm font-medium mb-1">Color</label>
                 <input
                   type="text"
-                  value={formData.color}
-                  onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
                   className="w-full p-2 border rounded-md"
                 />
               </div>
@@ -431,19 +354,19 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
               <div className="flex items-center">
                 <input
                   type="checkbox"
-                  checked={formData.assemblyRequired}
-                  onChange={(e) => setFormData({ ...formData, assemblyRequired: e.target.checked })}
+                  checked={assemblyRequired}
+                  onChange={(e) => setAssemblyRequired(e.target.checked)}
                   className="mr-2"
                 />
                 <label className="text-sm font-medium">Assembly Required</label>
               </div>
-              {formData.assemblyRequired && (
+              {assemblyRequired && (
                 <div>
                   <label className="block text-sm font-medium mb-1">Assembly Time (minutes)</label>
                   <input
                     type="number"
-                    value={formData.assemblyTime}
-                    onChange={(e) => setFormData({ ...formData, assemblyTime: Number(e.target.value) })}
+                    value={assemblyTime}
+                    onChange={(e) => setAssemblyTime(e.target.value)}
                     className="w-full p-2 border rounded-md"
                     min="0"
                   />
@@ -453,11 +376,8 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
                 <label className="block text-sm font-medium mb-1">Warranty Duration (months)</label>
                 <input
                   type="number"
-                  value={formData.warranty.duration}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    warranty: { ...formData.warranty, duration: Number(e.target.value) }
-                  })}
+                  value={warranty.duration}
+                  onChange={(e) => setWarranty({ ...warranty, duration: Number(e.target.value) })}
                   className="w-full p-2 border rounded-md"
                   min="0"
                 />
@@ -466,11 +386,8 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
                 <label className="block text-sm font-medium mb-1">Warranty Coverage</label>
                 <input
                   type="text"
-                  value={formData.warranty.coverage}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    warranty: { ...formData.warranty, coverage: e.target.value }
-                  })}
+                  value={warranty.coverage}
+                  onChange={(e) => setWarranty({ ...warranty, coverage: e.target.value })}
                   className="w-full p-2 border rounded-md"
                 />
               </div>
@@ -485,11 +402,8 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
                 <label className="block text-sm font-medium mb-1">Warehouse</label>
                 <input
                   type="text"
-                  value={formData.location.warehouse}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    location: { ...formData.location, warehouse: e.target.value }
-                  })}
+                  value={location.warehouse}
+                  onChange={(e) => setLocation({ ...location, warehouse: e.target.value })}
                   className="w-full p-2 border rounded-md"
                 />
               </div>
@@ -497,11 +411,8 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
                 <label className="block text-sm font-medium mb-1">Aisle</label>
                 <input
                   type="text"
-                  value={formData.location.aisle}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    location: { ...formData.location, aisle: e.target.value }
-                  })}
+                  value={location.aisle}
+                  onChange={(e) => setLocation({ ...location, aisle: e.target.value })}
                   className="w-full p-2 border rounded-md"
                 />
               </div>
@@ -509,11 +420,8 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
                 <label className="block text-sm font-medium mb-1">Shelf</label>
                 <input
                   type="text"
-                  value={formData.location.shelf}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    location: { ...formData.location, shelf: e.target.value }
-                  })}
+                  value={location.shelf}
+                  onChange={(e) => setLocation({ ...location, shelf: e.target.value })}
                   className="w-full p-2 border rounded-md"
                 />
               </div>
@@ -528,11 +436,8 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
                 <label className="block text-sm font-medium mb-1">Tags</label>
                 <input
                   type="text"
-                  value={formData.tags.join(', ')}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    tags: e.target.value.split(',').map(t => t.trim()).filter(t => t)
-                  })}
+                  value={tags}
+                  onChange={(e) => setTags(e.target.value)}
                   className="w-full p-2 border rounded-md"
                   placeholder="Enter tags separated by commas"
                 />
@@ -540,8 +445,8 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
               <div>
                 <label className="block text-sm font-medium mb-1">Notes</label>
                 <textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
                   className="w-full p-2 border rounded-md"
                   rows={3}
                 />
@@ -557,24 +462,18 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
                 <label className="block text-sm font-medium mb-1">Inspector</label>
                 <input
                   type="text"
-                  value={formData.qualityControl.inspector}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    qualityControl: { ...formData.qualityControl, inspector: e.target.value }
-                  })}
+                  value={qualityControl.inspector}
+                  onChange={(e) => setQualityControl({ ...qualityControl, inspector: e.target.value })}
                   className="w-full p-2 border rounded-md"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Status</label>
                 <select
-                  value={formData.qualityControl.status}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    qualityControl: {
-                      ...formData.qualityControl,
-                      status: e.target.value as 'passed' | 'failed' | 'pending'
-                    }
+                  value={qualityControl.status}
+                  onChange={(e) => setQualityControl({
+                    ...qualityControl,
+                    status: e.target.value as 'passed' | 'failed' | 'pending'
                   })}
                   className="w-full p-2 border rounded-md"
                 >
@@ -591,11 +490,8 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
             <div className="flex items-center">
               <input
                 type="checkbox"
-                checked={formData.customization.available}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  customization: { ...formData.customization, available: e.target.checked }
-                })}
+                checked={customization.available}
+                onChange={(e) => setCustomization({ ...customization, available: e.target.checked })}
                 className="mr-2"
               />
               <label className="text-sm font-medium">Customization Available</label>

@@ -1,8 +1,31 @@
 import { NextResponse } from 'next/server';
-import { Client } from '@googlemaps/google-maps-services-js';
+import { Client, DirectionsResponse, DistanceMatrixResponse, TravelMode } from '@googlemaps/google-maps-services-js';
+
+interface Location {
+  lat: number;
+  lng: number;
+}
+
+interface DeliveryStop {
+  id: string;
+  location: Location;
+  address: string;
+}
+
+interface OptimizedRoute {
+  stops: DeliveryStop[];
+  totalDistance: number;
+  totalDuration: number;
+}
+
+interface RouteError {
+  message: string;
+  code?: string;
+  details?: string;
+}
 
 // Helper function to calculate distance between two points using Haversine formula
-function getDistance(point1: { lat: number; lng: number }, point2: { lat: number; lng: number }): number {
+function getDistance(point1: Location, point2: Location): number {
   const R = 6371; // Earth's radius in km
   const dLat = toRad(point2.lat - point1.lat);
   const dLon = toRad(point2.lng - point1.lng);
@@ -24,139 +47,114 @@ function estimateDuration(distance: number): number {
   return (distance / 30) * 60; // Duration in minutes
 }
 
-// Create a distance matrix using local calculations
-function createLocalDistanceMatrix(origins: { lat: number; lng: number }[], destinations: { lat: number; lng: number }[]) {
-  return origins.map(origin => 
-    destinations.map(dest => ({
-      distance: getDistance(origin, dest),
-      duration: estimateDuration(getDistance(origin, dest))
-    }))
-  );
-}
-
 const client = new Client({});
 
 export async function POST(request: Request) {
   try {
-    const { deliveries, depotCoordinates } = await request.json();
+    const data = await request.json() as { stops: DeliveryStop[] };
+    const { stops } = data;
 
-    if (!deliveries?.length || !depotCoordinates) {
-      return NextResponse.json(
-        { error: 'Invalid request data' },
-        { status: 400 }
-      );
+    if (!stops || !Array.isArray(stops)) {
+      return NextResponse.json({ 
+        message: 'Invalid input: stops must be an array'
+      } as RouteError, { status: 400 });
     }
 
-    // Create distance matrix between all points
-    const origins = [depotCoordinates, ...deliveries.map((d: any) => d.coordinates)];
-    const destinations = [...deliveries.map((d: any) => d.coordinates), depotCoordinates];
+    // Calculate distance matrix
+    const origins = stops.map(stop => ({ lat: stop.location.lat, lng: stop.location.lng }));
+    const destinations = [...origins];
 
-    // Validate coordinates
-    if (origins.some(coord => !coord?.lat || !coord?.lng) || 
-        destinations.some(coord => !coord?.lat || !coord?.lng)) {
-      return NextResponse.json(
-        { error: 'Invalid coordinates in delivery data' },
-        { status: 400 }
-      );
-    }
-
-    let distanceMatrix;
-    try {
-      // Try to use Google Maps Distance Matrix API
-      if (process.env.GOOGLE_MAPS_API_KEY) {
-        const matrix = await client.distancematrix({
-          params: {
-            origins: origins.map(coord => `${coord.lat},${coord.lng}`),
-            destinations: destinations.map(coord => `${coord.lat},${coord.lng}`),
-            key: process.env.GOOGLE_MAPS_API_KEY,
-          },
-        });
-
-        if (matrix.data.status === 'OK') {
-          // Convert Google's response to our format
-          distanceMatrix = matrix.data.rows.map(row => 
-            row.elements.map(element => ({
-              distance: element.distance.value / 1000, // Convert to km
-              duration: element.duration.value / 60 // Convert to minutes
-            }))
-          );
-        } else {
-          throw new Error(`Google Maps API Error: ${matrix.data.status}`);
+    const distanceMatrix: number[][] = [];
+    for (let i = 0; i < origins.length; i++) {
+      const row: number[] = [];
+      for (let j = 0; j < destinations.length; j++) {
+        if (i === j) {
+          row.push(0);
+          continue;
         }
-      } else {
-        throw new Error('Google Maps API key not configured');
+
+        try {
+          const response = await client.distancematrix({
+            params: {
+              origins: [`${origins[i].lat},${origins[i].lng}`],
+              destinations: [`${destinations[j].lat},${destinations[j].lng}`],
+              mode: TravelMode.driving,
+              key: process.env.GOOGLE_MAPS_API_KEY || ''
+            }
+          });
+
+          const element = response.data.rows[0]?.elements[0];
+          if (element?.status === 'OK' && element.distance) {
+            row.push(element.distance.value);
+          } else {
+            row.push(Infinity);
+          }
+        } catch (error) {
+          console.error('Error calculating distance:', error);
+          row.push(Infinity);
+        }
       }
-    } catch (error) {
-      console.warn('Falling back to local distance calculations:', error);
-      // Fallback to local calculations
-      distanceMatrix = createLocalDistanceMatrix(origins, destinations);
+      distanceMatrix.push(row);
     }
 
-    // Implement nearest neighbor algorithm
-    const route = nearestNeighborAlgorithm(distanceMatrix, deliveries);
+    // Nearest neighbor algorithm
+    const visited = new Set<number>();
+    const route: number[] = [0];
+    visited.add(0);
+
+    while (visited.size < stops.length) {
+      const current = route[route.length - 1];
+      let nearest = -1;
+      let minDistance = Infinity;
+
+      for (let i = 0; i < stops.length; i++) {
+        if (!visited.has(i) && distanceMatrix[current][i] < minDistance) {
+          nearest = i;
+          minDistance = distanceMatrix[current][i];
+        }
+      }
+
+      if (nearest === -1) break;
+      route.push(nearest);
+      visited.add(nearest);
+    }
 
     // Calculate total distance and duration
     let totalDistance = 0;
     let totalDuration = 0;
 
     for (let i = 0; i < route.length - 1; i++) {
-      const currentIndex = deliveries.findIndex((d: any) => d.id === route[i].id);
-      const nextIndex = deliveries.findIndex((d: any) => d.id === route[i + 1].id);
-      
-      if (currentIndex === -1 || nextIndex === -1) {
-        throw new Error('Invalid route calculation: delivery not found');
-      }
-      
-      totalDistance += distanceMatrix[currentIndex][nextIndex].distance;
-      totalDuration += distanceMatrix[currentIndex][nextIndex].duration;
-    }
+      try {
+        const response = await client.directions({
+          params: {
+            origin: `${stops[route[i]].location.lat},${stops[route[i]].location.lng}`,
+            destination: `${stops[route[i + 1]].location.lat},${stops[route[i + 1]].location.lng}`,
+            mode: TravelMode.driving,
+            key: process.env.GOOGLE_MAPS_API_KEY || ''
+          }
+        });
 
-    return NextResponse.json({
-      totalDistance,
-      totalDuration,
-      waypoints: route,
-    });
-  } catch (error: any) {
-    console.error('Route optimization error:', error);
-    return NextResponse.json(
-      { 
-        error: 'Failed to optimize route',
-        details: error.message
-      },
-      { status: error.response?.status || 500 }
-    );
-  }
-}
-
-function nearestNeighborAlgorithm(
-  matrix: { distance: number; duration: number; }[][],
-  deliveries: any[]
-): any[] {
-  const visited = new Set<string>();
-  const route: any[] = [];
-  let currentIndex = 0;
-
-  while (visited.size < deliveries.length) {
-    let nearestDistance = Infinity;
-    let nearestIndex = -1;
-
-    for (let i = 0; i < deliveries.length; i++) {
-      if (!visited.has(deliveries[i].id)) {
-        const distance = matrix[currentIndex][i].distance;
-        if (distance < nearestDistance) {
-          nearestDistance = distance;
-          nearestIndex = i;
+        const leg = response.data.routes[0]?.legs[0];
+        if (leg?.distance?.value && leg?.duration?.value) {
+          totalDistance += leg.distance.value;
+          totalDuration += leg.duration.value;
         }
+      } catch (error) {
+        console.error('Error calculating route leg:', error);
       }
     }
 
-    if (nearestIndex !== -1) {
-      const nextDelivery = deliveries[nearestIndex];
-      route.push(nextDelivery);
-      visited.add(nextDelivery.id);
-      currentIndex = nearestIndex;
-    }
-  }
+    const optimizedRoute: OptimizedRoute = {
+      stops: route.map(index => stops[index]),
+      totalDistance,
+      totalDuration
+    };
 
-  return route;
+    return NextResponse.json(optimizedRoute);
+  } catch (error) {
+    return NextResponse.json({ 
+      message: 'Failed to optimize route',
+      details: error instanceof Error ? error.message : String(error)
+    } as RouteError, { status: 500 });
+  }
 } 
