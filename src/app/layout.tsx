@@ -6,8 +6,8 @@ import { GoogleMapsProvider } from '@/contexts/GoogleMapsContext'
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Furniture World",
-  description: "Furniture delivery management system",
+  title: "Family Mattress",
+  description: "Mattress and furniture delivery management system",
   icons: {
     icon: '/favicon.ico'
   }

@@ -15,77 +15,57 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 
+interface ActiveDelivery {
+  id: string;
+  customer: string;
+  items: string;
+  status: string;
+  driver: string;
+  eta: string;
+  address: string;
+  avatar: string;
+}
+
 const metrics = [
   { 
     title: 'Today\'s Deliveries',
-    value: '24',
-    change: '+5',
+    value: '0',
+    change: '+0',
     icon: Truck,
     color: '#2D6BFF'
   },
   {
     title: 'Available Drivers',
-    value: '12',
-    change: '-2',
+    value: '0',
+    change: '+0',
     icon: Users,
     color: '#00C48C'
   },
   {
     title: 'Pending Orders',
-    value: '45',
-    change: '+8',
+    value: '0',
+    change: '+0',
     icon: Package,
     color: '#FF9500'
   },
   {
     title: 'Delayed Deliveries',
-    value: '3',
-    change: '+1',
+    value: '0',
+    change: '+0',
     icon: AlertCircle,
     color: '#FF3B30'
   }
 ]
 
-const activeDeliveries = [
-  {
-    id: 'FDO-1234',
-    customer: 'John Smith',
-    items: '3-Seater Sofa, Coffee Table',
-    status: 'In Transit',
-    driver: 'Mike Johnson',
-    eta: '10:45 AM',
-    address: '123 Main St, New York',
-    avatar: 'https://picsum.photos/seed/1/32/32'
-  },
-  {
-    id: 'FDO-1235',
-    customer: 'Sarah Wilson',
-    items: 'Dining Set (6 chairs)',
-    status: 'Loading',
-    driver: 'David Lee',
-    eta: '11:15 AM',
-    address: '456 Park Ave, New York',
-    avatar: 'https://picsum.photos/seed/2/32/32'
-  },
-  {
-    id: 'FDO-1236',
-    customer: 'Emma Davis',
-    items: 'King Bed, Wardrobe',
-    status: 'Scheduled',
-    driver: 'Chris Brown',
-    eta: '02:30 PM',
-    address: '789 Broadway, New York',
-    avatar: 'https://picsum.photos/seed/3/32/32'
-  }
-]
+const activeDeliveries: ActiveDelivery[] = []
 
 const upcomingDeliveries = [
-  { time: '09:00 AM', count: 3 },
-  { time: '10:00 AM', count: 5 },
-  { time: '11:00 AM', count: 4 },
-  { time: '12:00 PM', count: 2 },
-  { time: '01:00 PM', count: 6 },
-  { time: '02:00 PM', count: 3 }
+  { time: '09:00 AM', count: 0 },
+  { time: '10:00 AM', count: 0 },
+  { time: '11:00 AM', count: 0 },
+  { time: '12:00 PM', count: 0 },
+  { time: '01:00 PM', count: 0 },
+  { time: '02:00 PM', count: 0 }
 ]
 
 export default function DeliveryDashboard() {

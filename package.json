@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@googlemaps/google-maps-services-js": "^3.4.0",
+    "@radix-ui/react-dialog": "^1.1.6",
+    "@radix-ui/react-slot": "^1.1.2",
     "@react-google-maps/api": "^2.20.6",
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/ssr": "^0.5.2",
@@ -17,11 +19,14 @@
     "@types/google-maps": "^4.0.0",
     "@types/google.maps": "^3.58.1",
     "@types/pdfjs-dist": "^2.10.378",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "lucide-react": "^0.475.0",
     "next": "15.1.7",
     "pdfjs-dist": "^4.10.38",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "tailwind-merge": "^3.0.2",
     "tesseract.js": "^4.1.1"
   },
   "devDependencies": {

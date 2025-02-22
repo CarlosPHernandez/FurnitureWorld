@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
@@ -17,15 +18,15 @@ import {
   MapPin,
   Package,
   FileSearch,
+  BoxIcon,
 } from 'lucide-react'
 
 const navigation = [
   { name: 'Dashboard', href: '/delivery-dashboard', icon: LayoutDashboard },
+  { name: 'Inventory', href: '/inventory', icon: BoxIcon },
   { name: 'Route Planning', href: '/route-planning', icon: MapPin },
   { name: 'Deliveries', href: '/deliveries', icon: Package },
   { name: 'Invoice Scanner', href: '/invoice-scanner', icon: FileSearch },
-  { name: 'Customer Report', href: '/customer-report', icon: Users },
-  { name: 'Delivery Data', href: '/delivery-data', icon: Database },
   { name: 'Delivery Invoices', href: '/delivery-invoices', icon: Receipt },
   { name: 'Search', href: '/search', icon: Search },
 ]
@@ -36,8 +37,18 @@ export default function Sidebar() {
   return (
     <div className="fixed left-0 top-0 h-full w-60 bg-white border-r border-[#E5E5E5] p-4">
       <div className="flex flex-col h-full">
-        <div className="mb-8">
-          <h1 className="text-xl font-bold text-[#1A1A1A]">Delivery Manager</h1>
+        <div className="mb-8 bg-white">
+          <Link href="/" className="block">
+            <div className="relative w-[150px] h-[50px]">
+              <Image
+                src="/Logo-matters-1.webp"
+                alt="Family Mattress"
+                fill
+                className="object-contain [filter:brightness(0)]"
+                priority
+              />
+            </div>
+          </Link>
         </div>
         
         <nav className="flex-1">
