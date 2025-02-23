@@ -7,15 +7,18 @@ interface FilterModalProps {
   onClose: () => void
   filters: {
     category: string
+    brand: string
     priceRange: number[]
     stockStatus: string
   }
   onApplyFilters: (filters: {
     category: string
+    brand: string
     priceRange: number[]
     stockStatus: string
   }) => void
   categories: string[]
+  brands: string[]
 }
 
 export default function FilterModal({
@@ -23,7 +26,8 @@ export default function FilterModal({
   onClose,
   filters,
   onApplyFilters,
-  categories
+  categories,
+  brands
 }: FilterModalProps) {
   const [localFilters, setLocalFilters] = useState(filters)
 
@@ -51,6 +55,21 @@ export default function FilterModal({
               <option value="all">All Categories</option>
               {categories.map((category) => (
                 <option key={category} value={category}>{category}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Brand Filter */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Brand</label>
+            <select
+              value={localFilters.brand}
+              onChange={(e) => setLocalFilters({ ...localFilters, brand: e.target.value })}
+              className="w-full p-2 border rounded-md"
+            >
+              <option value="all">All Brands</option>
+              {brands.map((brand) => (
+                <option key={brand} value={brand}>{brand}</option>
               ))}
             </select>
           </div>

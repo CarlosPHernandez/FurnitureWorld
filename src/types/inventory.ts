@@ -22,6 +22,7 @@ export interface InventoryItem {
   sku: string;
   name: string;
   category: string;
+  brand: string;
   quantity: number;
   minQuantity: number;
   price: number;

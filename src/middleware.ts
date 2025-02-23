@@ -1,24 +1,45 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
-import { NextResponse, type NextRequest } from 'next/server'
-
-const protectedRoutes = [
-  '/delivery-dashboard',
-  '/customer-report',
-  '/courier-payroll',
-  '/delivery-data',
-  '/delivery-invoices',
-  '/delivery-logs',
-  '/download-report',
-  '/customize-widget',
-  '/search',
-]
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  // Always return next response to allow access to all routes
-  return NextResponse.next()
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value
+        },
+        set(name: string, value: string, options: any) {
+          response.cookies.set({
+            name,
+            value,
+            ...options,
+          })
+        },
+        remove(name: string, options: any) {
+          response.cookies.set({
+            name,
+            value: '',
+            ...options,
+          })
+        },
+      },
+    }
+  )
+
+  await supabase.auth.getSession()
+
+  return response
 }
 
-// Keep the matcher configuration for reference
 export const config = {
   matcher: [
     '/',
@@ -27,6 +48,7 @@ export const config = {
     '/courier-payroll',
     '/delivery-data',
     '/delivery-invoices',
+    '/app-integration',
     '/delivery-logs-dropdown',
     '/download-report',
     '/customize-widget',
@@ -35,6 +57,5 @@ export const config = {
     '/settings/:path*',
     '/couriers/:path*',
     '/deliveries/:path*',
-    '/auth/:path*'
-  ]
+  ],
 } 

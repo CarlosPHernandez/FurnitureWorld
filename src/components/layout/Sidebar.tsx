@@ -23,49 +23,72 @@ const navigation = [
   { name: 'Search', href: '/search', icon: Search },
 ]
 
-export default function Sidebar() {
+interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname()
 
   return (
-    <div className="fixed left-0 top-0 h-full w-60 bg-white border-r border-[#E5E5E5] p-4">
-      <div className="flex flex-col h-full">
-        <div className="mb-8 bg-white">
-          <Link href="/" className="block">
-            <div className="relative w-[150px] h-[50px]">
-              <Image
-                src="/Logo-matters-1.webp"
-                alt="Family Mattress"
-                fill
-                className="object-contain [filter:brightness(0)]"
-                priority
-              />
-            </div>
-          </Link>
+    <>
+      {/* Backdrop */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
+          onClick={onClose}
+        />
+      )}
+      
+      {/* Sidebar */}
+      <div className={`fixed left-0 top-0 h-full w-60 bg-white border-r border-[#E5E5E5] p-4 z-30 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+        isOpen ? 'translate-x-0' : '-translate-x-full'
+      } lg:relative lg:z-auto`}>
+        <div className="flex flex-col h-full">
+          <div className="mb-8 bg-white">
+            <Link href="/" className="block">
+              <div className="relative w-[150px] h-[50px]">
+                <Image
+                  src="/Logo-matters-1.webp"
+                  alt="Family Mattress"
+                  fill
+                  className="object-contain [filter:brightness(0)]"
+                  priority
+                />
+              </div>
+            </Link>
+          </div>
+          
+          <nav className="flex-1">
+            <ul className="space-y-1">
+              {navigation.map((item) => {
+                const isActive = pathname === item.href
+                return (
+                  <li key={item.name}>
+                    <Link
+                      href={item.href}
+                      className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        isActive
+                          ? 'bg-[#2D6BFF] text-white'
+                          : 'text-[#1A1A1A] hover:bg-gray-100'
+                      }`}
+                      onClick={() => {
+                        if (window.innerWidth < 1024) {
+                          onClose();
+                        }
+                      }}
+                    >
+                      <item.icon className="mr-3 h-5 w-5" />
+                      {item.name}
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </nav>
         </div>
-        
-        <nav className="flex-1">
-          <ul className="space-y-1">
-            {navigation.map((item) => {
-              const isActive = pathname === item.href
-              return (
-                <li key={item.name}>
-                  <Link
-                    href={item.href}
-                    className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      isActive
-                        ? 'bg-[#2D6BFF] text-white'
-                        : 'text-[#1A1A1A] hover:bg-gray-100'
-                    }`}
-                  >
-                    <item.icon className="mr-3 h-5 w-5" />
-                    {item.name}
-                  </Link>
-                </li>
-              )
-            })}
-          </ul>
-        </nav>
       </div>
-    </div>
+    </>
   )
 } 

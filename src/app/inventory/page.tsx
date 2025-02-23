@@ -11,15 +11,16 @@ import {
   Edit,
   Trash2,
   DollarSign,
+  ChevronRight,
 } from 'lucide-react'
 import AddItemModal from '@/components/inventory/AddItemModal'
 import FilterModal from '@/components/inventory/FilterModal'
 import { InventoryItem } from '@/types/inventory'
 import { 
-  ChevronRight,
   ArrowUpDown,
   X,
 } from 'lucide-react'
+import DeliveryLayout from '@/components/layout/DeliveryLayout'
 
 interface Dimensions {
   length: number;
@@ -42,6 +43,7 @@ interface Supplier {
 
 interface FilterOptions {
   category: string
+  brand: string
   priceRange: number[]
   stockStatus: string
 }
@@ -52,9 +54,24 @@ export default function InventoryPage() {
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false)
   const [filters, setFilters] = useState({
     category: 'all',
+    brand: 'all',
     priceRange: [] as number[],
     stockStatus: 'all'
   })
+
+  // Common furniture brands
+  const commonBrands = [
+    'Ashley Furniture',
+    'Crown Mark',
+    'Galaxy Furniture',
+    'Homey Design',
+    'Coaster Furniture',
+    'ACME Furniture',
+    'Liberty Furniture',
+    'Signature Design',
+    'Global Furniture USA',
+    'Meridian Furniture'
+  ]
 
   // Example inventory data with complete details
   const [inventory, setInventory] = useState<InventoryItem[]>([
@@ -63,6 +80,7 @@ export default function InventoryPage() {
       sku: 'SOFA-001',
       name: '3-Seater Sofa',
       category: 'Living Room',
+      brand: 'Ashley Furniture',
       quantity: 5,
       minQuantity: 3,
       price: 899.99,
@@ -131,6 +149,7 @@ export default function InventoryPage() {
       sku: 'BED-001',
       name: 'Queen Size Bed',
       category: 'Bedroom',
+      brand: 'Crown Mark',
       quantity: 2,
       minQuantity: 2,
       price: 699.99,
@@ -213,166 +232,176 @@ export default function InventoryPage() {
   const filteredInventory = inventory.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.category.toLowerCase().includes(searchQuery.toLowerCase())
+      item.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.brand.toLowerCase().includes(searchQuery.toLowerCase())
 
     const matchesCategory = filters.category === 'all' || item.category === filters.category
+    const matchesBrand = filters.brand === 'all' || item.brand === filters.brand
     const matchesPriceRange = filters.priceRange.length === 0 ||
       (item.price >= filters.priceRange[0] && item.price <= filters.priceRange[1])
     const matchesStockStatus = filters.stockStatus === 'all' ||
       (filters.stockStatus === 'low' && item.quantity <= item.minQuantity) ||
       (filters.stockStatus === 'in-stock' && item.quantity > item.minQuantity)
 
-    return matchesSearch && matchesCategory && matchesPriceRange && matchesStockStatus
+    return matchesSearch && matchesCategory && matchesBrand && matchesPriceRange && matchesStockStatus
   })
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-[#1A1A1A]">Inventory Management</h1>
-        <button
-          onClick={() => setIsAddItemModalOpen(true)}
-          className="flex items-center px-4 py-2 text-sm text-white bg-[#2D6BFF] hover:bg-[#2D6BFF]/90 rounded-lg"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          <span>Add Item</span>
-        </button>
-      </div>
-
-      {/* Search and Filter */}
-      <div className="flex flex-wrap gap-4">
-        <div className="flex-1 min-w-[240px]">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by name, SKU, or category..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#2D6BFF] focus:border-transparent"
-            />
+    <DeliveryLayout>
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center text-sm text-gray-500 mb-4">
+            <span>Inventory</span>
+            <ChevronRight className="h-4 w-4 mx-2" />
+            <span className="text-[#2D6BFF]">Inventory Management</span>
           </div>
-        </div>
-        <button 
-          onClick={() => setIsFilterOpen(true)}
-          className={`flex items-center px-4 py-2 text-sm ${
-            Object.values(filters).some(value => 
-              Array.isArray(value) ? value.length > 0 : value !== 'all'
-            )
-              ? 'text-white bg-[#2D6BFF] hover:bg-[#2D6BFF]/90'
-              : 'text-[#1A1A1A] hover:bg-gray-100'
-          } rounded-lg`}
-        >
-          <Filter className="mr-2 h-4 w-4" />
-          <span>Filter</span>
-        </button>
-      </div>
-
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <Package className="h-6 w-6 text-[#2D6BFF]" />
-            <span className="text-sm font-medium text-[#2D6BFF]">Total Items</span>
-          </div>
-          <p className="text-2xl font-bold mt-2">{inventory.length}</p>
+          <button
+            onClick={() => setIsAddItemModalOpen(true)}
+            className="flex items-center px-4 py-2 text-sm text-white bg-[#2D6BFF] hover:bg-[#2D6BFF]/90 rounded-lg"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            <span>Add Item</span>
+          </button>
         </div>
 
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <AlertCircle className="h-6 w-6 text-[#FF3B30]" />
-            <span className="text-sm font-medium text-[#FF3B30]">Low Stock Items</span>
+        {/* Search and Filter */}
+        <div className="flex flex-wrap gap-4">
+          <div className="flex-1 min-w-[240px]">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by name, SKU, category, or brand..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#2D6BFF] focus:border-transparent"
+              />
+            </div>
           </div>
-          <p className="text-2xl font-bold mt-2">
-            {inventory.filter(item => item.quantity <= item.minQuantity).length}
-          </p>
+          <button 
+            onClick={() => setIsFilterOpen(true)}
+            className={`flex items-center px-4 py-2 text-sm ${
+              Object.values(filters).some(value => 
+                Array.isArray(value) ? value.length > 0 : value !== 'all'
+              )
+                ? 'text-white bg-[#2D6BFF] hover:bg-[#2D6BFF]/90'
+                : 'text-[#1A1A1A] hover:bg-gray-100'
+            } rounded-lg`}
+          >
+            <Filter className="mr-2 h-4 w-4" />
+            <span>Filter</span>
+          </button>
         </div>
 
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <DollarSign className="h-6 w-6 text-[#00C48C]" />
-            <span className="text-sm font-medium text-[#00C48C]">Total Value</span>
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white rounded-xl p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <Package className="h-6 w-6 text-[#2D6BFF]" />
+              <span className="text-sm font-medium text-[#2D6BFF]">Total Items</span>
+            </div>
+            <p className="text-2xl font-bold mt-2">{inventory.length}</p>
           </div>
-          <p className="text-2xl font-bold mt-2">
-            ${inventory.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)}
-          </p>
-        </div>
-      </div>
 
-      {/* Inventory Table */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-4 px-6 text-sm font-medium text-gray-500">Item</th>
-                <th className="text-left py-4 px-6 text-sm font-medium text-gray-500">SKU</th>
-                <th className="text-left py-4 px-6 text-sm font-medium text-gray-500">Category</th>
-                <th className="text-left py-4 px-6 text-sm font-medium text-gray-500">Quantity</th>
-                <th className="text-left py-4 px-6 text-sm font-medium text-gray-500">Price</th>
-                <th className="text-left py-4 px-6 text-sm font-medium text-gray-500">Last Updated</th>
-                <th className="text-right py-4 px-6 text-sm font-medium text-gray-500">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredInventory.map((item) => (
-                <tr key={item.id} className="border-b border-gray-200">
-                  <td className="py-4 px-6">
-                    <div className="flex items-center space-x-4">
-                      <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100">
-                        <Image
-                          src={item.imageUrl}
-                          alt={item.name}
-                          fill
-                          className="object-cover"
-                          sizes="48px"
-                        />
-                      </div>
-                      <span className="font-medium text-[#1A1A1A]">{item.name}</span>
-                    </div>
-                  </td>
-                  <td className="py-4 px-6 text-sm text-gray-600">{item.sku}</td>
-                  <td className="py-4 px-6 text-sm text-gray-600">{item.category}</td>
-                  <td className="py-4 px-6">
-                    <div className="flex items-center space-x-2">
-                      <span className={`text-sm ${
-                        item.quantity <= item.minQuantity ? 'text-[#FF3B30]' : 'text-gray-600'
-                      }`}>
-                        {item.quantity}
-                      </span>
-                      {item.quantity <= item.minQuantity && (
-                        <AlertCircle className="h-4 w-4 text-[#FF3B30]" />
-                      )}
-                    </div>
-                  </td>
-                  <td className="py-4 px-6 text-sm text-gray-600">
-                    ${item.price.toFixed(2)}
-                  </td>
-                  <td className="py-4 px-6 text-sm text-gray-600">
-                    {new Date(item.lastUpdated).toLocaleDateString()}
-                  </td>
-                  <td className="py-4 px-6">
-                    <div className="flex items-center justify-end space-x-2">
-                      <button
-                        onClick={() => {/* Handle edit */}}
-                        className="p-2 text-gray-400 hover:text-gray-600"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteItem(item.id)}
-                        className="p-2 text-gray-400 hover:text-[#FF3B30]"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
+          <div className="bg-white rounded-xl p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <AlertCircle className="h-6 w-6 text-[#FF3B30]" />
+              <span className="text-sm font-medium text-[#FF3B30]">Low Stock Items</span>
+            </div>
+            <p className="text-2xl font-bold mt-2">
+              {inventory.filter(item => item.quantity <= item.minQuantity).length}
+            </p>
+          </div>
+
+          <div className="bg-white rounded-xl p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <DollarSign className="h-6 w-6 text-[#00C48C]" />
+              <span className="text-sm font-medium text-[#00C48C]">Total Value</span>
+            </div>
+            <p className="text-2xl font-bold mt-2">
+              ${inventory.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)}
+            </p>
+          </div>
+        </div>
+
+        {/* Inventory Table */}
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-4 px-6 text-sm font-medium text-gray-500">Item</th>
+                  <th className="text-left py-4 px-6 text-sm font-medium text-gray-500">SKU</th>
+                  <th className="text-left py-4 px-6 text-sm font-medium text-gray-500">Brand</th>
+                  <th className="text-left py-4 px-6 text-sm font-medium text-gray-500">Category</th>
+                  <th className="text-left py-4 px-6 text-sm font-medium text-gray-500">Quantity</th>
+                  <th className="text-left py-4 px-6 text-sm font-medium text-gray-500">Price</th>
+                  <th className="text-left py-4 px-6 text-sm font-medium text-gray-500">Last Updated</th>
+                  <th className="text-right py-4 px-6 text-sm font-medium text-gray-500">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredInventory.map((item) => (
+                  <tr key={item.id} className="border-b border-gray-200">
+                    <td className="py-4 px-6">
+                      <div className="flex items-center space-x-4">
+                        <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100">
+                          <Image
+                            src={item.imageUrl}
+                            alt={item.name}
+                            fill
+                            className="object-cover"
+                            sizes="48px"
+                          />
+                        </div>
+                        <span className="font-medium text-[#1A1A1A]">{item.name}</span>
+                      </div>
+                    </td>
+                    <td className="py-4 px-6 text-sm text-gray-600">{item.sku}</td>
+                    <td className="py-4 px-6 text-sm text-gray-600">{item.brand}</td>
+                    <td className="py-4 px-6 text-sm text-gray-600">{item.category}</td>
+                    <td className="py-4 px-6">
+                      <div className="flex items-center space-x-2">
+                        <span className={`text-sm ${
+                          item.quantity <= item.minQuantity ? 'text-[#FF3B30]' : 'text-gray-600'
+                        }`}>
+                          {item.quantity}
+                        </span>
+                        {item.quantity <= item.minQuantity && (
+                          <AlertCircle className="h-4 w-4 text-[#FF3B30]" />
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-4 px-6 text-sm text-gray-600">
+                      ${item.price.toFixed(2)}
+                    </td>
+                    <td className="py-4 px-6 text-sm text-gray-600">
+                      {new Date(item.lastUpdated).toLocaleDateString()}
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="flex items-center justify-end space-x-2">
+                        <button
+                          onClick={() => {/* Handle edit */}}
+                          className="p-2 text-gray-400 hover:text-gray-600"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteItem(item.id)}
+                          className="p-2 text-gray-400 hover:text-[#FF3B30]"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-
+      
       {/* Add Item Modal */}
       <AddItemModal
         isOpen={isAddItemModalOpen}
@@ -387,7 +416,8 @@ export default function InventoryPage() {
         filters={filters}
         onApplyFilters={setFilters}
         categories={Array.from(new Set(inventory.map(item => item.category)))}
+        brands={commonBrands}
       />
-    </div>
+    </DeliveryLayout>
   )
 } 
