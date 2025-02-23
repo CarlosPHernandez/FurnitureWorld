@@ -12,7 +12,7 @@ import {
   User,
   MoreVertical,
 } from 'lucide-react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient, Session } from '@supabase/auth-helpers-nextjs'
 
 interface HeaderProps {
   title?: string
@@ -50,7 +50,7 @@ export default function Header({ title }: HeaderProps) {
 
     getUser()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: Session | null) => {
       setUser(session?.user ?? null)
     })
 
@@ -65,7 +65,7 @@ export default function Header({ title }: HeaderProps) {
   }
 
   return (
-    <header className="fixed top-0 left-0 lg:left-60 right-0 h-[60px] bg-white border-b border-[#E5E5E5] px-6 flex items-center justify-between z-10">
+    <header className="fixed top-0 left-0 lg:left-60 right-0 h-[60px] bg-white border-b border-[#E5E5E5] px-4 flex items-center justify-between z-10">
       <div className="flex items-center flex-1 max-w-xl ml-12 lg:ml-0">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -87,12 +87,12 @@ export default function Header({ title }: HeaderProps) {
           <span>Delivery Logs</span>
           <ChevronDown className="ml-2 h-4 w-4" />
         </button>
-        
+
         <button className="flex items-center px-4 py-2 text-sm text-[#1A1A1A] hover:bg-gray-100 rounded-lg">
           <Download className="mr-2 h-4 w-4" />
           <span>Download Report</span>
         </button>
-        
+
         <button className="flex items-center px-4 py-2 text-sm text-[#1A1A1A] hover:bg-gray-100 rounded-lg">
           <Settings2 className="mr-2 h-4 w-4" />
           <span>Customize Widget</span>
@@ -139,12 +139,12 @@ export default function Header({ title }: HeaderProps) {
             <span>Delivery Logs</span>
             <ChevronDown className="ml-2 h-4 w-4" />
           </button>
-          
+
           <button className="flex w-full items-center px-4 py-2 text-sm text-[#1A1A1A] hover:bg-gray-100">
             <Download className="mr-2 h-4 w-4" />
             <span>Download Report</span>
           </button>
-          
+
           <button className="flex w-full items-center px-4 py-2 text-sm text-[#1A1A1A] hover:bg-gray-100">
             <Settings2 className="mr-2 h-4 w-4" />
             <span>Customize Widget</span>

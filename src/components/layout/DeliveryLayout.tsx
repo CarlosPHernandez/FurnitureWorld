@@ -15,7 +15,7 @@ export default function DeliveryLayout({
   return (
     <div className="min-h-screen bg-[#F8F8F8]">
       {/* Mobile menu button */}
-      <button 
+      <button
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
         className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-white shadow-sm"
       >
@@ -25,7 +25,7 @@ export default function DeliveryLayout({
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       <Header />
       <main className="lg:pl-60 pt-[60px] min-h-screen">
-        <div className="p-4 md:p-6">
+        <div className="p-2 md:p-4">
           {children}
         </div>
       </main>
