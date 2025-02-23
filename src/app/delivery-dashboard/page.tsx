@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import DeliveryLayout from '@/components/layout/DeliveryLayout'
-import { 
-  BarChart3, 
-  MapPin, 
-  Package, 
+import {
+  BarChart3,
+  MapPin,
+  Package,
   Clock,
   ChevronRight,
   ChevronDown,
@@ -42,7 +42,7 @@ interface Order {
 }
 
 const metrics = [
-  { 
+  {
     title: "Today's Deliveries",
     value: '0',
     change: '+0',
@@ -200,20 +200,20 @@ export default function DeliveryDashboard() {
 
   return (
     <DeliveryLayout>
-      <div className="space-y-8">
+      <div className="space-y-4">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 bg-white rounded-xl p-4 md:p-6 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 bg-white rounded-xl p-3 md:p-4 shadow-sm">
           <div className="flex items-center text-sm text-gray-500">
             <span className="hover:text-gray-700 transition-colors">Dashboard</span>
             <ChevronRight className="h-4 w-4 mx-2" />
             <span className="text-[#2D6BFF] font-medium">Furniture Deliveries</span>
           </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-            <button className="flex items-center justify-center px-4 py-2.5 text-sm text-[#1A1A1A] bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors duration-200">
+            <button className="flex items-center justify-center px-4 py-2 text-sm text-[#1A1A1A] bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors duration-200">
               <Calendar className="mr-2 h-4 w-4" />
               <span>Today</span>
             </button>
-            <button className="flex items-center justify-center px-4 py-2.5 text-sm text-white bg-[#2D6BFF] hover:bg-[#2D6BFF]/90 rounded-lg transition-colors duration-200 shadow-sm shadow-[#2D6BFF]/25">
+            <button className="flex items-center justify-center px-4 py-2 text-sm text-white bg-[#2D6BFF] hover:bg-[#2D6BFF]/90 rounded-lg transition-colors duration-200 shadow-sm shadow-[#2D6BFF]/25">
               <Package className="mr-2 h-4 w-4" />
               <span>New Order</span>
             </button>
@@ -221,7 +221,7 @@ export default function DeliveryDashboard() {
         </div>
 
         {/* Metrics Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {metrics.map((metric) => (
             <div
               key={metric.title}
@@ -231,11 +231,10 @@ export default function DeliveryDashboard() {
                 <div className="p-2 rounded-lg" style={{ backgroundColor: `${metric.color}10` }}>
                   <metric.icon className="h-6 w-6" style={{ color: metric.color }} />
                 </div>
-                <span className={`text-sm font-medium px-2 py-1 rounded-full ${
-                  metric.change.startsWith('+') 
-                    ? 'text-[#00C48C] bg-[#00C48C]/10' 
+                <span className={`text-sm font-medium px-2 py-1 rounded-full ${metric.change.startsWith('+')
+                    ? 'text-[#00C48C] bg-[#00C48C]/10'
                     : 'text-[#FF9500] bg-[#FF9500]/10'
-                }`}>
+                  }`}>
                   {metric.change}
                 </span>
               </div>
@@ -284,13 +283,12 @@ export default function DeliveryDashboard() {
                       <td className="py-4 font-medium text-[#2D6BFF]">{order.id}</td>
                       <td className="py-4">{order.customer}</td>
                       <td className="py-4">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                          order.status === 'Delivered'
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${order.status === 'Delivered'
                             ? 'bg-[#00C48C]/10 text-[#00C48C]'
                             : order.status === 'In Progress'
-                            ? 'bg-[#2D6BFF]/10 text-[#2D6BFF]'
-                            : 'bg-[#FF9500]/10 text-[#FF9500]'
-                        }`}>
+                              ? 'bg-[#2D6BFF]/10 text-[#2D6BFF]'
+                              : 'bg-[#FF9500]/10 text-[#FF9500]'
+                          }`}>
                           {order.status}
                         </span>
                       </td>
@@ -310,8 +308,8 @@ export default function DeliveryDashboard() {
             </h2>
             <div className="space-y-3">
               {upcomingDeliveries.map((slot, index) => (
-                <div 
-                  key={index} 
+                <div
+                  key={index}
                   className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors duration-200 cursor-pointer group"
                 >
                   <div className="flex items-center">
@@ -494,13 +492,12 @@ export default function DeliveryDashboard() {
                       </div>
                       <div className="ml-3">
                         <h3 className="text-sm font-medium text-gray-900">{driver.name}</h3>
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                          driver.status === 'Available'
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${driver.status === 'Available'
                             ? 'bg-[#00C48C]/10 text-[#00C48C]'
                             : driver.status === 'On Delivery'
-                            ? 'bg-[#2D6BFF]/10 text-[#2D6BFF]'
-                            : 'bg-gray-100 text-gray-600'
-                        }`}>
+                              ? 'bg-[#2D6BFF]/10 text-[#2D6BFF]'
+                              : 'bg-gray-100 text-gray-600'
+                          }`}>
                           {driver.status}
                         </span>
                       </div>
