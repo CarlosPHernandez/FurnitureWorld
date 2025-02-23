@@ -35,16 +35,15 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     <>
       {/* Backdrop */}
       {isOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
           onClick={onClose}
         />
       )}
-      
+
       {/* Sidebar */}
-      <div className={`fixed left-0 top-0 h-full w-60 bg-white border-r border-[#E5E5E5] p-4 z-30 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
-        isOpen ? 'translate-x-0' : '-translate-x-full'
-      } lg:relative lg:z-auto`}>
+      <div className={`fixed top-0 left-0 h-full w-60 bg-white border-r border-[#E5E5E5] p-4 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'
+        } lg:relative lg:z-0`}>
         <div className="flex flex-col h-full">
           <div className="mb-8 bg-white">
             <Link href="/" className="block">
@@ -59,7 +58,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               </div>
             </Link>
           </div>
-          
+
           <nav className="flex-1">
             <ul className="space-y-1">
               {navigation.map((item) => {
@@ -68,11 +67,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   <li key={item.name}>
                     <Link
                       href={item.href}
-                      className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        isActive
+                      className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive
                           ? 'bg-[#2D6BFF] text-white'
                           : 'text-[#1A1A1A] hover:bg-gray-100'
-                      }`}
+                        }`}
                       onClick={() => {
                         if (window.innerWidth < 1024) {
                           onClose();

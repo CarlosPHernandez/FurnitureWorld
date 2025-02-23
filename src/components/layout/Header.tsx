@@ -65,7 +65,7 @@ export default function Header({ title }: HeaderProps) {
   }
 
   return (
-    <header className="fixed top-0 left-0 lg:left-60 right-0 h-[60px] bg-white border-b border-[#E5E5E5] px-4 flex items-center justify-between z-10">
+    <header className="fixed top-0 right-0 left-0 lg:left-60 h-[60px] bg-white border-b border-[#E5E5E5] px-4 flex items-center justify-between z-10">
       <div className="flex items-center flex-1 max-w-xl ml-12 lg:ml-0">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />

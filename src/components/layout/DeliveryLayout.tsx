@@ -13,7 +13,7 @@ export default function DeliveryLayout({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   return (
-    <div className="min-h-screen bg-[#F8F8F8]">
+    <div className="min-h-screen bg-[#F8F8F8] flex">
       {/* Mobile menu button */}
       <button
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -23,12 +23,15 @@ export default function DeliveryLayout({
       </button>
 
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-      <Header />
-      <main className="lg:pl-60 pt-[60px] min-h-screen">
-        <div className="p-2 md:p-4">
-          {children}
-        </div>
-      </main>
+
+      <div className="flex-1">
+        <Header />
+        <main className="lg:pl-60 pt-[60px]">
+          <div className="p-2 md:p-4">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   )
 } 
