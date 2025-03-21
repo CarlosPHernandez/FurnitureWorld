@@ -11,7 +11,10 @@ import {
   Package,
   MapPin,
   Clock,
-  Truck
+  Truck,
+  Check,
+  Trash2,
+  AlertCircle
 } from 'lucide-react'
 import { Autocomplete } from '@react-google-maps/api'
 import { useGoogleMaps } from '@/contexts/GoogleMapsContext'
@@ -44,6 +47,10 @@ export default function Deliveries() {
   const [isAddingDelivery, setIsAddingDelivery] = useState(false)
   const [deliveries, setDeliveries] = useState<Delivery[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
+  const [isUpdating, setIsUpdating] = useState(false)
+  const [showConfirmDelete, setShowConfirmDelete] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
   const [newDelivery, setNewDelivery] = useState({
     address: '',
     customer: '',
@@ -56,6 +63,20 @@ export default function Deliveries() {
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null)
   const [addressError, setAddressError] = useState('')
   const { isLoaded } = useGoogleMaps();
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setActiveDropdown(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   useEffect(() => {
     fetchDeliveries()
@@ -105,6 +126,56 @@ export default function Deliveries() {
     }
   }
 
+  const handleMarkAsDone = async (id: string) => {
+    setIsUpdating(true)
+    setActionError(null)
+    try {
+      const response = await fetch(`/api/deliveries/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: 'Completed' }),
+      })
+
+      if (!response.ok) throw new Error('Failed to update delivery status')
+
+      // Update the local state
+      setDeliveries(deliveries.map(delivery =>
+        delivery.id === id
+          ? { ...delivery, status: 'Completed' }
+          : delivery
+      ))
+      setActiveDropdown(null)
+    } catch (error) {
+      console.error('Error updating delivery:', error)
+      setActionError('Failed to mark delivery as done. Please try again.')
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  const handleDeleteDelivery = async (id: string) => {
+    setIsUpdating(true)
+    setActionError(null)
+    try {
+      const response = await fetch(`/api/deliveries/${id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) throw new Error('Failed to delete delivery')
+
+      // Remove from local state
+      setDeliveries(deliveries.filter(delivery => delivery.id !== id))
+      setShowConfirmDelete(null)
+    } catch (error) {
+      console.error('Error deleting delivery:', error)
+      setActionError('Failed to delete delivery. Please try again.')
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
   const handleAddItem = () => {
     setNewDelivery(prev => ({
       ...prev,
@@ -124,6 +195,10 @@ export default function Deliveries() {
       ...prev,
       items: prev.items.map((item, i) => i === index ? value : item)
     }))
+  }
+
+  const toggleDropdown = (id: string) => {
+    setActiveDropdown(activeDropdown === id ? null : id)
   }
 
   // Get today's date in YYYY-MM-DD format for min date
@@ -188,24 +263,30 @@ export default function Deliveries() {
       {isLoading ? (
         <LoadingScreen text="Loading deliveries..." icon="sofa" />
       ) : (
-        <div className="space-y-6">
-          {/* Header */}
-          <div className="flex items-center justify-between">
+        <div className="p-4 md:p-6 space-y-6">
+          {/* Breadcrumb and Add Delivery Button */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
             <div className="flex items-center text-sm text-gray-500">
-              <span>Deliveries</span>
+              <span className="hover:text-gray-700 transition-colors">Dashboard</span>
               <ChevronRight className="h-4 w-4 mx-2" />
-              <span className="text-[#2D6BFF]">Manage Deliveries</span>
+              <span className="text-[#2D6BFF] font-medium">Furniture Deliveries</span>
             </div>
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setIsAddingDelivery(true)}
-                className="flex items-center px-4 py-2 text-sm text-white bg-[#2D6BFF] hover:bg-[#2D6BFF]/90 rounded-lg"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                <span>Add Delivery</span>
-              </button>
-            </div>
+            <button
+              onClick={() => setIsAddingDelivery(true)}
+              className="flex items-center justify-center space-x-2 px-4 py-2 bg-[#2D6BFF] text-white rounded-lg hover:bg-[#2D6BFF]/90 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Add Delivery</span>
+            </button>
           </div>
+
+          {/* Error Message (if any) */}
+          {actionError && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center">
+              <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
+              <p>{actionError}</p>
+            </div>
+          )}
 
           {/* Add Delivery Form */}
           {isAddingDelivery && (
@@ -406,14 +487,75 @@ export default function Deliveries() {
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">{delivery.driver}</td>
                       <td className="px-6 py-4">
-                        <span className="px-2 py-1 text-xs rounded-full bg-[#2D6BFF]/10 text-[#2D6BFF]">
+                        <span className={`px-2 py-1 text-xs rounded-full ${delivery.status === 'Completed'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-[#2D6BFF]/10 text-[#2D6BFF]'
+                          }`}>
                           {delivery.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
-                        <button className="text-gray-400 hover:text-gray-600">
-                          <MoreVertical className="h-5 w-5" />
-                        </button>
+                      <td className="px-6 py-4 relative">
+                        <div ref={activeDropdown === delivery.id ? dropdownRef : null}>
+                          <button
+                            className="text-gray-400 hover:text-gray-600"
+                            onClick={() => toggleDropdown(delivery.id)}
+                            disabled={isUpdating}
+                          >
+                            <MoreVertical className="h-5 w-5" />
+                          </button>
+
+                          {activeDropdown === delivery.id && (
+                            <div className="absolute right-6 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-100">
+                              {delivery.status !== 'Completed' && (
+                                <button
+                                  className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                  onClick={() => handleMarkAsDone(delivery.id)}
+                                  disabled={isUpdating}
+                                >
+                                  <Check className="h-4 w-4 mr-2 text-green-500" />
+                                  Mark as Done
+                                </button>
+                              )}
+                              <button
+                                className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                                onClick={() => setShowConfirmDelete(delivery.id)}
+                                disabled={isUpdating}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </button>
+                            </div>
+                          )}
+
+                          {showConfirmDelete === delivery.id && (
+                            <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+                              <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
+                                <h3 className="text-lg font-medium text-gray-900">Confirm Deletion</h3>
+                                <p className="mt-2 text-sm text-gray-500">
+                                  Are you sure you want to delete this delivery? This action cannot be undone.
+                                </p>
+                                <div className="mt-4 flex justify-end space-x-3">
+                                  <button
+                                    type="button"
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                                    onClick={() => setShowConfirmDelete(null)}
+                                    disabled={isUpdating}
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600"
+                                    onClick={() => handleDeleteDelivery(delivery.id)}
+                                    disabled={isUpdating}
+                                  >
+                                    {isUpdating ? 'Deleting...' : 'Delete'}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}

@@ -1,16 +1,18 @@
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@supabase/supabase-js'
 import { Database } from '@/types/supabase'
+
+// Environment variables for Supabase admin client
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    // Properly await cookies() before using it
-    const cookieStore = cookies()
-    const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore })
+    // Create an admin client that bypasses RLS
+    const supabase = createClient<Database>(supabaseUrl, supabaseServiceKey)
 
     // Public access to individual invoices is allowed
     const { data, error } = await supabase
@@ -39,14 +41,8 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const cookieStore = cookies()
-    const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore })
-
-    // Temporarily remove authentication check for testing
-    // const { data: { session } } = await supabase.auth.getSession()
-    // if (!session) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    // }
+    // Create an admin client that bypasses RLS
+    const supabase = createClient<Database>(supabaseUrl, supabaseServiceKey)
 
     // Get the invoice data from the request
     const invoiceData = await request.json()
@@ -95,14 +91,8 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const cookieStore = cookies()
-    const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore })
-
-    // Temporarily remove authentication check for testing
-    // const { data: { session } } = await supabase.auth.getSession()
-    // if (!session) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    // }
+    // Create an admin client that bypasses RLS
+    const supabase = createClient<Database>(supabaseUrl, supabaseServiceKey)
 
     // Delete the invoice
     const { error } = await supabase

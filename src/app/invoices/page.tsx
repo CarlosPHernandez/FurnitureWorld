@@ -11,12 +11,16 @@ import {
   CheckCircle,
   AlertCircle,
   Clock,
-  XCircle
+  XCircle,
+  Download,
+  Eye
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { Invoice, InvoiceItem } from '@/types/invoice'
 import PrintInvoice from '@/components/invoice/PrintInvoice'
 import CreateInvoiceModal from '@/components/invoice/CreateInvoiceModal'
+import { jsPDF } from 'jspdf'
+import html2canvas from 'html2canvas'
 
 export default function InvoiceManagement() {
   const [invoices, setInvoices] = useState<Invoice[]>([])
@@ -27,6 +31,8 @@ export default function InvoiceManagement() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showPreview, setShowPreview] = useState(true)
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
 
   // Use a constant logo path
   const companyLogo = '/Logo-matters-1.webp'
@@ -65,6 +71,41 @@ export default function InvoiceManagement() {
     documentTitle: `Invoice-${selectedInvoice?.invoiceNumber || 'print'}`,
   });
 
+  // Download PDF function
+  const handleDownloadPdf = async () => {
+    if (!printRef.current || !selectedInvoice) return;
+
+    try {
+      setIsGeneratingPdf(true);
+
+      const canvas = await html2canvas(printRef.current, {
+        scale: 2, // Higher scale for better quality
+        logging: false,
+        useCORS: true
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+
+      // Document dimensions based on standard US Letter (8.5 x 11 inches)
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'in',
+        format: [8.5, 11]
+      });
+
+      // Calculate the dimensions to maintain aspect ratio
+      const imgWidth = 8.5; // Width of US Letter paper in inches
+      const imgHeight = canvas.height * imgWidth / canvas.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      pdf.save(`Invoice-${selectedInvoice.invoiceNumber}.pdf`);
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
   const handleAddInvoice = async (invoiceData: {
     customerName: string
     customerEmail: string
@@ -95,39 +136,32 @@ export default function InvoiceManagement() {
 
       if (!response.ok) {
         console.error('Server error response:', responseData)
-        throw new Error(responseData.error || 'Failed to create invoice')
+        let errorMessage = responseData.error || 'Failed to create invoice'
+
+        if (responseData.details) {
+          errorMessage += `: ${responseData.details}`
+        }
+
+        if (responseData.hint) {
+          errorMessage += ` (${responseData.hint})`
+        }
+
+        throw new Error(errorMessage)
       }
 
       console.log('Invoice created successfully:', responseData)
 
       const newInvoice = responseData
 
-      // Convert snake_case to camelCase for consistency
-      const formattedInvoice: Invoice = {
-        id: newInvoice.id,
-        invoiceNumber: newInvoice.invoice_number,
-        customerName: newInvoice.customer_name,
-        customerEmail: newInvoice.customer_email,
-        customerPhone: newInvoice.customer_phone,
-        customerAddress: newInvoice.customer_address,
-        date: newInvoice.date,
-        dueDate: newInvoice.due_date,
-        items: newInvoice.items,
-        subtotal: newInvoice.subtotal,
-        tax: newInvoice.tax,
-        total: newInvoice.total,
-        status: newInvoice.status,
-        notes: newInvoice.notes,
-        paidDate: newInvoice.paid_date,
-        createdAt: newInvoice.created_at,
-        updatedAt: newInvoice.updated_at,
-      }
+      // Add it to the invoices array
+      setInvoices(prevInvoices => [newInvoice, ...prevInvoices])
 
-      setInvoices([formattedInvoice, ...invoices])
+      // Close the modal
       setShowCreateModal(false)
     } catch (err) {
-      console.error('Error creating invoice:', err)
-      setError(err instanceof Error ? err.message : 'Failed to create invoice. Please try again.')
+      console.error('Error adding invoice:', err)
+      setError(err instanceof Error ? err.message : 'An unknown error occurred')
+      alert(`Error creating invoice: ${err instanceof Error ? err.message : 'An unknown error occurred'}`)
     } finally {
       setIsLoading(false)
     }
@@ -135,15 +169,16 @@ export default function InvoiceManagement() {
 
   const handleStatusChange = async (invoice: Invoice, newStatus: 'pending' | 'paid' | 'overdue' | 'cancelled') => {
     try {
+      setIsLoading(true)
+
       const response = await fetch(`/api/invoices/${invoice.id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...invoice,
           status: newStatus,
-          paidDate: newStatus === 'paid' ? format(new Date(), 'yyyy-MM-dd') : invoice.paidDate,
+          paidDate: newStatus === 'paid' ? new Date().toISOString() : null,
         }),
       })
 
@@ -153,37 +188,39 @@ export default function InvoiceManagement() {
 
       const updatedInvoice = await response.json()
 
-      setInvoices(invoices.map(inv =>
-        inv.id === updatedInvoice.id ? {
-          ...updatedInvoice,
-          // Convert snake_case to camelCase
-          invoiceNumber: updatedInvoice.invoice_number,
-          customerName: updatedInvoice.customer_name,
-          customerEmail: updatedInvoice.customer_email,
-          customerPhone: updatedInvoice.customer_phone,
-          customerAddress: updatedInvoice.customer_address,
-          dueDate: updatedInvoice.due_date,
-          paidDate: updatedInvoice.paid_date,
-          createdAt: updatedInvoice.created_at,
-          updatedAt: updatedInvoice.updated_at,
-        } : inv
-      ))
+      // Update the invoice in the state
+      setInvoices(prevInvoices =>
+        prevInvoices.map(inv => (inv.id === updatedInvoice.id ? updatedInvoice : inv))
+      )
     } catch (err) {
       console.error('Error updating invoice status:', err)
-      setError('Failed to update invoice status. Please try again.')
+      setError(err instanceof Error ? err.message : 'An unknown error occurred')
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  // Filter invoices based on search query and date filter
+  // Filtered invoices for the table
   const filteredInvoices = invoices.filter(invoice => {
-    const matchesSearch =
-      invoice.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      invoice.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (invoice.customerEmail && invoice.customerEmail.toLowerCase().includes(searchQuery.toLowerCase()))
+    const matchesQuery = searchQuery
+      ? invoice.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      invoice.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase())
+      : true
 
-    const matchesDate = !dateFilter || invoice.date.includes(dateFilter)
+    if (!dateFilter) {
+      return matchesQuery
+    }
 
-    return matchesSearch && matchesDate
+    const invoiceDate = new Date(invoice.date)
+    const filterDate = new Date(dateFilter)
+
+    // Compare only the date part (not time)
+    return (
+      matchesQuery &&
+      invoiceDate.getDate() === filterDate.getDate() &&
+      invoiceDate.getMonth() === filterDate.getMonth() &&
+      invoiceDate.getFullYear() === filterDate.getFullYear()
+    )
   })
 
   // Calculate metrics
@@ -203,146 +240,82 @@ export default function InvoiceManagement() {
       case 'cancelled':
         return <XCircle className="h-5 w-5 text-gray-500" />
       default:
-        return <FileText className="h-5 w-5 text-blue-500" />
+        return <Clock className="h-5 w-5 text-yellow-500" />
     }
   }
 
   return (
-    <div className="px-4 py-6 lg:pl-4 lg:pr-6 w-full">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-4 md:mb-0">Manage Invoices</h1>
-        <div className="flex flex-col sm:flex-row gap-3">
+    <div className="px-6 py-8 bg-gray-50 min-h-screen">
+      <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <h1 className="text-2xl font-bold text-gray-900">Invoices</h1>
+        <div className="flex gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by customer or invoice number"
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full md:w-64"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <div className="relative">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="date"
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full md:w-44"
+              value={dateFilter}
+              onChange={e => setDateFilter(e.target.value)}
+            />
+          </div>
           <button
-            className="flex items-center justify-center px-4 py-2 bg-[#2D6BFF] text-white rounded-lg hover:bg-[#2D6BFF]/90 transition-colors"
             onClick={() => setShowCreateModal(true)}
+            className="bg-[#2D6BFF] text-white rounded-lg px-4 py-2 flex items-center"
           >
-            <Plus className="h-5 w-5 mr-2" />
-            Create Invoice
+            <Plus className="h-4 w-4 mr-2" />
+            New Invoice
           </button>
         </div>
       </div>
 
-      {/* Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Total Invoices</p>
-              <p className="text-2xl font-bold mt-1">{totalInvoices}</p>
-            </div>
-            <FileText className="h-10 w-10 text-blue-500 opacity-80" />
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Pending</p>
-              <p className="text-2xl font-bold mt-1">{pendingInvoices}</p>
-            </div>
-            <Clock className="h-10 w-10 text-yellow-500 opacity-80" />
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Paid</p>
-              <p className="text-2xl font-bold mt-1">{paidInvoices}</p>
-            </div>
-            <CheckCircle className="h-10 w-10 text-green-500 opacity-80" />
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Overdue</p>
-              <p className="text-2xl font-bold mt-1">{overdueInvoices}</p>
-            </div>
-            <AlertCircle className="h-10 w-10 text-red-500 opacity-80" />
-          </div>
-        </div>
-      </div>
-
-      {/* Search and filters */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search invoices by number, customer name or email..."
-              className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#2D6BFF] focus:border-transparent"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-          <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <input
-              type="date"
-              className="pl-10 pr-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#2D6BFF] focus:border-transparent"
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Error message */}
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-6 py-4 rounded-lg mb-8">
-          <p className="font-bold">Error</p>
-          <p>{error}</p>
-        </div>
-      )}
-
-      {/* Loading state */}
-      {isLoading && (
-        <div className="flex justify-center items-center py-16">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-      )}
-
-      {/* Invoices table */}
-      {!isLoading && filteredInvoices.length === 0 ? (
-        <div className="bg-white p-12 rounded-xl shadow-sm border border-gray-100 text-center">
-          <FileText className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No invoices found</h3>
-          <p className="text-gray-500 mb-6">
-            {searchQuery || dateFilter
-              ? 'Try adjusting your search or filters'
-              : 'Create your first invoice to get started'}
+        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-6">
+          <p className="flex items-center">
+            <AlertCircle className="h-5 w-5 mr-2" />
+            {error}
           </p>
-          {!searchQuery && !dateFilter && (
-            <button
-              className="inline-flex items-center px-6 py-3 bg-[#2D6BFF] text-white rounded-lg hover:bg-[#2D6BFF]/90 transition-colors"
-              onClick={() => setShowCreateModal(true)}
-            >
-              <Plus className="h-5 w-5 mr-2" />
-              Create Invoice
-            </button>
-          )}
+        </div>
+      )}
+
+      {isLoading && !invoices.length ? (
+        <div className="p-8 flex justify-center">
+          <div className="animate-pulse flex flex-col items-center">
+            <div className="h-12 w-12 bg-gray-200 rounded-full mb-4"></div>
+            <div className="h-4 bg-gray-200 rounded w-36 mb-2"></div>
+            <div className="h-3 bg-gray-200 rounded w-24"></div>
+          </div>
         </div>
       ) : (
-        <div className="overflow-x-auto bg-white rounded-xl shadow-sm border border-gray-100">
+        <div className="overflow-x-auto bg-white rounded-xl shadow">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Invoice
                 </th>
-                <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Customer
                 </th>
-                <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Date
                 </th>
-                <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Amount
                 </th>
-                <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
-                <th scope="col" className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -448,9 +421,9 @@ export default function InvoiceManagement() {
       {/* Print Invoice Modal */}
       {showPrintModal && selectedInvoice && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-6">
-          <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-900">Print Invoice</h2>
+              <h2 className="text-xl font-bold text-gray-900">Invoice: {selectedInvoice.invoiceNumber}</h2>
               <button
                 onClick={() => setShowPrintModal(false)}
                 className="text-gray-500 hover:text-gray-700 focus:outline-none"
@@ -460,18 +433,55 @@ export default function InvoiceManagement() {
                 </svg>
               </button>
             </div>
-            <div className="p-6">
-              <div ref={printRef}>
-                <PrintInvoice invoice={selectedInvoice} companyLogo={companyLogo} />
+
+            {/* Controls and Preview Toggle */}
+            <div className="flex items-center justify-between px-6 py-3 bg-gray-50 border-b">
+              <div className="flex items-center">
+                <button
+                  onClick={() => setShowPreview(!showPreview)}
+                  className="flex items-center text-gray-700 hover:text-blue-600 mr-6"
+                >
+                  <Eye className="h-5 w-5 mr-2" />
+                  {showPreview ? 'Hide Preview' : 'Show Preview'}
+                </button>
               </div>
-              <div className="mt-6 flex justify-end">
+              <div className="flex gap-3">
+                <button
+                  onClick={handleDownloadPdf}
+                  disabled={isGeneratingPdf}
+                  className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isGeneratingPdf ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-5 w-5 mr-2" />
+                      Download PDF
+                    </>
+                  )}
+                </button>
                 <button
                   onClick={() => handlePrint()}
-                  className="flex items-center px-6 py-3 bg-[#2D6BFF] text-white rounded-lg hover:bg-[#2D6BFF]/90 transition-colors"
+                  className="flex items-center px-4 py-2 bg-[#2D6BFF] text-white rounded-lg hover:bg-[#2D6BFF]/90"
                 >
                   <Printer className="h-5 w-5 mr-2" />
-                  Print Invoice
+                  Print
                 </button>
+              </div>
+            </div>
+
+            {/* Invoice Preview with Scrolling */}
+            <div className="flex-1 overflow-y-auto p-6 bg-gray-100">
+              <div className={`mx-auto ${showPreview ? '' : 'hidden'}`}>
+                <div ref={printRef}>
+                  <PrintInvoice invoice={selectedInvoice} companyLogo={companyLogo} showPreview={showPreview} />
+                </div>
               </div>
             </div>
           </div>

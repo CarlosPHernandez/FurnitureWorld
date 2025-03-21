@@ -1,6 +1,6 @@
 'use client'
 
-import { forwardRef } from 'react'
+import { forwardRef, useEffect, useState } from 'react'
 import Image from 'next/image'
 
 interface PrintInvoiceProps {
@@ -24,11 +24,44 @@ interface PrintInvoiceProps {
     notes?: string
   }
   companyLogo?: string
+  showPreview?: boolean
 }
 
-const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(({ invoice, companyLogo }, ref) => {
+const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(({ invoice, companyLogo, showPreview }, ref) => {
+  const [logoError, setLogoError] = useState(false);
+  const [previewMode, setPreviewMode] = useState(showPreview || false);
+
+  useEffect(() => {
+    if (showPreview !== undefined) {
+      setPreviewMode(showPreview);
+    }
+  }, [showPreview]);
+
+  // Handle logo error/fallback
+  const handleLogoError = () => {
+    setLogoError(true);
+  };
+
   return (
-    <div ref={ref} className="p-8 bg-white">
+    <div
+      ref={ref}
+      className={`${previewMode ? 'p-0 mx-auto shadow-lg' : 'p-8'} bg-white ${previewMode ? 'max-w-[8.5in] min-h-[11in] border-0 rounded-lg shadow-xl' : ''}`}
+      style={previewMode ? {
+        width: '8.5in',
+        minHeight: '11in',
+        padding: '0.5in',
+        boxSizing: 'border-box'
+      } : {}}
+    >
+      {/* Preview Watermark (only visible in preview mode) */}
+      {previewMode && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="transform rotate-45 text-gray-200 text-9xl font-bold opacity-10">
+            PREVIEW
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex justify-between items-start mb-8">
         <div>
@@ -36,14 +69,15 @@ const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(({ invoice, c
           <p className="text-gray-600 mt-1">{invoice.invoiceNumber}</p>
         </div>
         <div className="text-right flex flex-col items-end">
-          {companyLogo ? (
-            <div className="mb-2">
+          {companyLogo && !logoError ? (
+            <div className="mb-2 relative" style={{ width: '150px', height: '60px' }}>
               <Image
                 src={companyLogo}
                 alt="Company Logo"
-                width={150}
-                height={60}
+                fill
                 className="object-contain"
+                onError={handleLogoError}
+                priority
               />
             </div>
           ) : (
