@@ -56,28 +56,116 @@ export default function PaymentForm({
       printWindow.document.write(`
         <html>
           <head>
-            <title>Payment Receipt</title>
+            <title>Payment Receipt - ${customer.fullName}</title>
             <style>
-              body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-              .receipt-content { max-width: 800px; margin: 0 auto; }
+              /* Page setup */
+              @page { 
+                size: letter portrait;
+                margin: 0.4in; 
+              }
+              body { 
+                font-family: Arial, sans-serif; 
+                margin: 0; 
+                padding: 0; 
+                background-color: white;
+                color: black;
+                font-size: 11pt;
+              }
+              * {
+                color: black !important;
+                border-color: black !important;
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+                box-sizing: border-box;
+              }
+              .receipt-content { 
+                width: 100%;
+                max-width: 7.7in; 
+                margin: 0 auto; 
+                padding: 0;
+                background-color: white;
+                color: black;
+              }
+              /* Control specific element sizes */
+              h1 { font-size: 18pt; margin: 0 0 0.1in 0; }
+              h2 { font-size: 14pt; margin: 0 0 0.1in 0; }
+              h3 { font-size: 12pt; margin: 0 0 0.1in 0; }
+              p { margin: 0 0 0.05in 0; }
+              .compact-text { font-size: 10pt; }
+              .print-button {
+                background-color: #2D6BFF;
+                color: white !important;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 6px;
+                font-weight: bold;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                margin: 20px auto;
+                font-size: 14px;
+              }
+              .print-container {
+                text-align: center;
+                padding: 20px;
+              }
               @media print {
-                body { margin: 0; padding: 0; }
-                button { display: none; }
+                body { 
+                  margin: 0; 
+                  padding: 0; 
+                  background-color: white;
+                  color: black;
+                }
+                .receipt-content {
+                  padding: 0;
+                  border: none;
+                }
+                .print-container {
+                  display: none;
+                }
+                p, span, h1, h2, h3, div {
+                  color: black !important;
+                }
               }
             </style>
           </head>
           <body>
             <div class="receipt-content">${receiptContent}</div>
-            <div style="text-align: center; margin-top: 20px;">
-              <button onclick="window.print()">Print Receipt</button>
+            <div class="print-container">
+              <button 
+                onclick="window.print()" 
+                class="print-button"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                Print Receipt
+              </button>
             </div>
+            <script>
+              // Force black color for all elements to prevent faded text in print
+              document.addEventListener('DOMContentLoaded', function() {
+                const elements = document.querySelectorAll('*');
+                elements.forEach(el => {
+                  if (el.tagName !== 'BUTTON' && el.tagName !== 'svg') {
+                    el.style.color = 'black';
+                  }
+                  if (el.style.borderColor) {
+                    el.style.borderColor = 'black';
+                  }
+                });
+                
+                // Auto print after a short delay to ensure everything is loaded
+                setTimeout(function() {
+                  window.print();
+                }, 500);
+              });
+            </script>
           </body>
         </html>
       `);
 
       printWindow.document.close();
     }
-  }, []);
+  }, [customer.fullName]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -96,28 +184,30 @@ export default function PaymentForm({
   if (isSuccess) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
-          <div className="text-center mb-6">
+        <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4 shadow-xl">
+          <div className="text-center mb-8">
             <div className="flex justify-center">
-              <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
+              <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                <CheckCircle className="h-10 w-10 text-green-500" />
+              </div>
             </div>
-            <h2 className="text-xl font-semibold text-[#1A1A1A]">Payment Recorded</h2>
-            <p className="text-gray-600 mt-2">
-              Payment of ${paymentData.amount.toFixed(2)} has been successfully recorded.
+            <h2 className="text-2xl font-semibold text-gray-900 mb-2">Payment Recorded</h2>
+            <p className="text-gray-600">
+              Payment of <span className="font-semibold text-green-600">${paymentData.amount.toFixed(2)}</span> has been successfully recorded.
             </p>
           </div>
 
-          <div className="flex justify-center space-x-4">
+          <div className="flex flex-col gap-3 mt-6">
             <button
               onClick={handlePrintReceipt}
-              className="flex items-center px-4 py-2 text-sm text-white bg-[#2D6BFF] hover:bg-[#2D6BFF]/90 rounded-lg"
+              className="flex items-center justify-center px-6 py-3 text-white bg-[#2D6BFF] hover:bg-[#2D6BFF]/90 rounded-lg font-medium transition-all shadow-md hover:shadow-lg"
             >
-              <Printer className="mr-2 h-4 w-4" />
+              <Printer className="mr-2 h-5 w-5" />
               Print Receipt
             </button>
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg"
+              className="px-6 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-all"
             >
               Close
             </button>
@@ -130,6 +220,7 @@ export default function PaymentForm({
               customer={customer}
               payment={paymentData}
               receiptNumber={receiptNumber}
+              showPreview={false}
             />
           </div>
         </div>

@@ -32,7 +32,30 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json(data)
+    // Transform database field names to camelCase for frontend
+    const transformedData = data.map(invoice => ({
+      id: invoice.id,
+      invoiceNumber: invoice.invoice_number,
+      customerName: invoice.customer_name || 'Customer', // Add default if missing
+      customerEmail: invoice.customer_email,
+      customerPhone: invoice.customer_phone,
+      customerAddress: invoice.customer_address,
+      date: invoice.date,
+      dueDate: invoice.due_date,
+      items: invoice.items,
+      subtotal: invoice.subtotal,
+      tax: invoice.tax,
+      total: invoice.total,
+      status: invoice.status,
+      notes: invoice.notes,
+      paidDate: invoice.paid_date,
+      createdBy: invoice.created_by,
+      createdAt: invoice.created_at,
+      updatedAt: invoice.updated_at
+    }))
+
+    console.log('Transformed invoices for frontend:', transformedData)
+    return NextResponse.json(transformedData)
   } catch (error) {
     console.error('Error fetching invoices:', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
@@ -54,7 +77,7 @@ export async function POST(request: Request) {
     // Validate required fields
     const requiredFields = ['customerName', 'date', 'dueDate', 'items', 'subtotal', 'tax', 'total']
     for (const field of requiredFields) {
-      if (!invoiceData[field]) {
+      if (invoiceData[field] === undefined || invoiceData[field] === null) {
         console.error(`Missing required field: ${field}`)
         return NextResponse.json({ error: `Missing required field: ${field}` }, { status: 400 })
       }

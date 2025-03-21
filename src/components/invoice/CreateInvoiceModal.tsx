@@ -39,7 +39,7 @@ export default function CreateInvoiceModal({ isOpen, onClose, onAdd }: CreateInv
     date: new Date().toISOString().split('T')[0],
     dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     items: [{ description: '', quantity: 1, unitPrice: 0, total: 0, inventoryId: undefined, sku: undefined }] as LineItem[],
-    taxRate: 8, // Default tax rate of 8%
+    taxRate: 6.75, // Default tax rate of 6.75%
   })
 
   // Inventory related state
@@ -156,9 +156,14 @@ export default function CreateInvoiceModal({ isOpen, onClose, onAdd }: CreateInv
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Ensure customer name is not empty
+    const customerNameInput = formData.customerName.trim();
+    const finalCustomerName = customerNameInput || 'Customer';
+
     const { subtotal, tax, total } = calculateTotals()
     onAdd({
-      customerName: formData.customerName,
+      customerName: finalCustomerName,
       customerEmail: formData.customerEmail,
       customerPhone: formData.customerPhone,
       customerAddress: formData.customerAddress,
@@ -177,7 +182,7 @@ export default function CreateInvoiceModal({ isOpen, onClose, onAdd }: CreateInv
       date: new Date().toISOString().split('T')[0],
       dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       items: [{ description: '', quantity: 1, unitPrice: 0, total: 0, inventoryId: undefined, sku: undefined }] as LineItem[],
-      taxRate: 8,
+      taxRate: 6.75,
     })
     onClose()
   }
@@ -396,15 +401,14 @@ export default function CreateInvoiceModal({ isOpen, onClose, onAdd }: CreateInv
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Tax Rate:</span>
                   <div className="flex items-center">
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
+                    <select
                       value={formData.taxRate}
                       onChange={(e) => setFormData({ ...formData, taxRate: Number(e.target.value) })}
-                      className="w-16 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D6BFF] focus:border-transparent"
-                    />
-                    <span className="ml-1">%</span>
+                      className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D6BFF] focus:border-transparent"
+                    >
+                      <option value="0">No Tax (0%)</option>
+                      <option value="6.75">Sales Tax (6.75%)</option>
+                    </select>
                   </div>
                 </div>
                 <div className="flex justify-between text-sm">

@@ -54,7 +54,15 @@ export default function InvoiceManagement() {
         }
 
         const data = await response.json()
-        setInvoices(data)
+        console.log('Fetched invoices:', data) // Log for debugging
+
+        // Ensure all invoices have a customer name
+        const processedData = data.map((invoice: any) => ({
+          ...invoice,
+          customerName: invoice.customerName || 'Customer'
+        }))
+
+        setInvoices(processedData)
         setError(null)
       } catch (err) {
         console.error('Error fetching invoices:', err)
@@ -67,11 +75,18 @@ export default function InvoiceManagement() {
     fetchInvoices()
   }, [])
 
-  // Using type assertion to fix type issues with useReactToPrint
+  // Fixed implementation of react-to-print
   const handlePrint = useReactToPrint({
-    // @ts-ignore - Type definitions for react-to-print may be outdated
+    // @ts-ignore - Type definitions for react-to-print don't match the library
     content: () => printRef.current,
     documentTitle: `Invoice-${selectedInvoice?.invoiceNumber || 'print'}`,
+    onBeforePrint: () => {
+      console.log('Print content:', printRef.current);
+      return Promise.resolve();
+    },
+    onPrintError: (error) => {
+      console.error('Print error:', error);
+    }
   });
 
   // Download PDF function
@@ -172,7 +187,10 @@ export default function InvoiceManagement() {
 
   const handleStatusChange = async (invoice: Invoice, newStatus: 'pending' | 'paid' | 'overdue' | 'cancelled') => {
     try {
-      setIsLoading(true)
+      setIsLoading(true);
+      setError(null);
+
+      console.log(`Updating invoice ${invoice.id} status to ${newStatus}`);
 
       const response = await fetch(`/api/invoices/${invoice.id}`, {
         method: 'PATCH',
@@ -183,25 +201,46 @@ export default function InvoiceManagement() {
           status: newStatus,
           paidDate: newStatus === 'paid' ? new Date().toISOString() : null,
         }),
-      })
+      });
 
       if (!response.ok) {
-        throw new Error('Failed to update invoice status')
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update invoice status');
       }
 
-      const updatedInvoice = await response.json()
+      const updatedInvoice = await response.json();
+      console.log('Invoice updated successfully:', updatedInvoice);
 
       // Update the invoice in the state
       setInvoices(prevInvoices =>
         prevInvoices.map(inv => (inv.id === updatedInvoice.id ? updatedInvoice : inv))
-      )
+      );
+
+      // If this is the currently selected invoice, update it too
+      if (selectedInvoice && selectedInvoice.id === updatedInvoice.id) {
+        setSelectedInvoice(updatedInvoice);
+      }
+
+      // Show success message
+      const statusMessage = {
+        'pending': 'marked as pending',
+        'paid': 'marked as paid',
+        'overdue': 'marked as overdue',
+        'cancelled': 'marked as cancelled'
+      }[newStatus];
+
+      // Use a temporary success message
+      const tempSuccessMessage = `Invoice ${updatedInvoice.invoiceNumber} ${statusMessage}`;
+      alert(tempSuccessMessage);
+
     } catch (err) {
-      console.error('Error updating invoice status:', err)
-      setError(err instanceof Error ? err.message : 'An unknown error occurred')
+      console.error('Error updating invoice status:', err);
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      alert(`Error: ${err instanceof Error ? err.message : 'An unknown error occurred'}`);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   // Filtered invoices for the table
   const filteredInvoices = invoices.filter(invoice => {
@@ -338,7 +377,9 @@ export default function InvoiceManagement() {
                     <div className="text-sm font-medium text-gray-900">{invoice.invoiceNumber}</div>
                   </td>
                   <td className="px-6 py-5 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{invoice.customerName}</div>
+                    <div className="text-sm font-medium text-gray-900">
+                      {invoice.customerName || 'Customer'}
+                    </div>
                     {invoice.customerEmail && (
                       <div className="text-sm text-gray-500 mt-1">{invoice.customerEmail}</div>
                     )}
@@ -485,7 +526,10 @@ export default function InvoiceManagement() {
                   )}
                 </button>
                 <button
-                  onClick={() => handlePrint()}
+                  onClick={() => {
+                    console.log('Print button clicked, printRef:', printRef.current);
+                    handlePrint();
+                  }}
                   className="flex items-center px-4 py-2 bg-[#2D6BFF] text-white rounded-lg hover:bg-[#2D6BFF]/90"
                 >
                   <Printer className="h-5 w-5 mr-2" />
@@ -496,15 +540,37 @@ export default function InvoiceManagement() {
 
             {/* Invoice Preview with Scrolling */}
             <div className="flex-1 overflow-y-auto p-6 bg-gray-100">
+              {/* Visible preview for users */}
               <div className={`mx-auto ${showPreview ? '' : 'hidden'}`}>
-                <div ref={printRef}>
-                  <PrintInvoice
-                    invoice={selectedInvoice}
-                    companyLogo={businessInfo.logoUrl}
-                    showPreview={showPreview}
-                    businessInfo={businessInfo}
-                  />
-                </div>
+                <PrintInvoice
+                  invoice={{
+                    ...selectedInvoice,
+                    // Ensure customer info is always displayed
+                    customerName: selectedInvoice.customerName || 'Customer',
+                  }}
+                  companyLogo={businessInfo.logoUrl}
+                  showPreview={showPreview}
+                  businessInfo={businessInfo}
+                  onStatusChange={(newStatus) => {
+                    if (selectedInvoice.id) {
+                      handleStatusChange(selectedInvoice, newStatus);
+                    }
+                  }}
+                />
+              </div>
+
+              {/* Hidden div for printing, always in DOM but visually hidden unless printing */}
+              <div ref={printRef} className="hidden">
+                <PrintInvoice
+                  invoice={{
+                    ...selectedInvoice,
+                    // Ensure customer info is always displayed
+                    customerName: selectedInvoice.customerName || 'Customer',
+                  }}
+                  companyLogo={businessInfo.logoUrl}
+                  showPreview={true} /* Always show content in print ref */
+                  businessInfo={businessInfo}
+                />
               </div>
             </div>
           </div>

@@ -3,9 +3,11 @@
 import { forwardRef, useEffect, useState } from 'react'
 import Image from 'next/image'
 import { BusinessInfo } from '@/contexts/BusinessContext'
+import { CheckCircle, Clock, AlertCircle, XCircle } from 'lucide-react'
 
 interface PrintInvoiceProps {
   invoice: {
+    id?: string
     invoiceNumber: string
     customerName: string
     customerEmail?: string
@@ -23,17 +25,20 @@ interface PrintInvoiceProps {
     tax: number
     total: number
     notes?: string
+    status?: 'pending' | 'paid' | 'overdue' | 'cancelled'
   }
   companyLogo?: string
   showPreview?: boolean
   businessInfo?: BusinessInfo
+  onStatusChange?: (newStatus: 'pending' | 'paid' | 'overdue' | 'cancelled') => void
 }
 
 const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(({
   invoice,
   companyLogo,
   showPreview,
-  businessInfo
+  businessInfo,
+  onStatusChange
 }, ref) => {
   const [logoError, setLogoError] = useState(false);
   const [previewMode, setPreviewMode] = useState(showPreview || false);
@@ -55,6 +60,24 @@ const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(({
     return `${businessInfo.city}, ${businessInfo.state} ${businessInfo.zipCode}`;
   }
 
+  // Get status display information
+  const getStatusInfo = (status: string | undefined) => {
+    switch (status) {
+      case 'pending':
+        return { icon: <Clock className="h-5 w-5 text-yellow-500" />, color: 'bg-yellow-100 text-yellow-800', label: 'Pending' };
+      case 'paid':
+        return { icon: <CheckCircle className="h-5 w-5 text-green-500" />, color: 'bg-green-100 text-green-800', label: 'Paid' };
+      case 'overdue':
+        return { icon: <AlertCircle className="h-5 w-5 text-red-500" />, color: 'bg-red-100 text-red-800', label: 'Overdue' };
+      case 'cancelled':
+        return { icon: <XCircle className="h-5 w-5 text-gray-500" />, color: 'bg-gray-100 text-gray-800', label: 'Cancelled' };
+      default:
+        return { icon: <Clock className="h-5 w-5 text-yellow-500" />, color: 'bg-yellow-100 text-yellow-800', label: 'Pending' };
+    }
+  };
+
+  const statusInfo = getStatusInfo(invoice.status);
+
   return (
     <div
       ref={ref}
@@ -75,11 +98,40 @@ const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(({
         </div>
       )}
 
+      {/* Status selector in preview mode */}
+      {previewMode && onStatusChange && invoice.id && (
+        <div className="absolute top-4 right-4 flex items-center gap-3">
+          <div className={`flex items-center px-3 py-1 rounded-full ${statusInfo.color}`}>
+            {statusInfo.icon}
+            <span className="ml-2 font-medium capitalize">{statusInfo.label}</span>
+          </div>
+
+          <select
+            className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={invoice.status || 'pending'}
+            onChange={(e) => onStatusChange(e.target.value as any)}
+          >
+            <option value="pending">Change to Pending</option>
+            <option value="paid">Change to Paid</option>
+            <option value="overdue">Change to Overdue</option>
+            <option value="cancelled">Change to Cancelled</option>
+          </select>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex justify-between items-start mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">INVOICE</h1>
           <p className="text-gray-600 mt-1">{invoice.invoiceNumber}</p>
+
+          {/* Display status badge on printed invoice */}
+          {!previewMode && invoice.status && (
+            <div className={`inline-flex items-center px-3 py-1 rounded-full mt-2 ${statusInfo.color}`}>
+              {statusInfo.icon}
+              <span className="ml-2 text-sm font-medium capitalize">{statusInfo.label}</span>
+            </div>
+          )}
         </div>
         <div className="text-right flex flex-col items-end">
           {companyLogo && !logoError ? (
@@ -165,7 +217,9 @@ const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(({
             <span className="text-gray-900">${invoice.subtotal.toFixed(2)}</span>
           </div>
           <div className="flex justify-between py-2">
-            <span className="text-gray-600">Tax:</span>
+            <span className="text-gray-600">
+              {invoice.tax > 0 ? 'Tax (6.75%):' : 'Tax (0%):'}
+            </span>
             <span className="text-gray-900">${invoice.tax.toFixed(2)}</span>
           </div>
           <div className="flex justify-between py-2 border-t border-gray-200 font-bold">
