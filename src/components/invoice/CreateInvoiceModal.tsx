@@ -1,13 +1,16 @@
 'use client'
 
-import { useState } from 'react'
-import { X, Plus, Trash2 } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { X, Plus, Trash2, Search, Package, Loader2 } from 'lucide-react'
+import type { InventoryItem } from '@/types/inventory'
 
 interface LineItem {
   description: string
   quantity: number
   unitPrice: number
   total: number
+  inventoryId?: string | undefined
+  sku?: string | undefined
 }
 
 interface CreateInvoiceModalProps {
@@ -35,9 +38,60 @@ export default function CreateInvoiceModal({ isOpen, onClose, onAdd }: CreateInv
     customerAddress: '',
     date: new Date().toISOString().split('T')[0],
     dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    items: [{ description: '', quantity: 1, unitPrice: 0, total: 0 }],
+    items: [{ description: '', quantity: 1, unitPrice: 0, total: 0, inventoryId: undefined, sku: undefined }] as LineItem[],
     taxRate: 8, // Default tax rate of 8%
   })
+
+  // Inventory related state
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([])
+  const [filteredItems, setFilteredItems] = useState<InventoryItem[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [loadingInventory, setLoadingInventory] = useState(false)
+  const [showInventoryModal, setShowInventoryModal] = useState(false)
+  const [currentItemIndex, setCurrentItemIndex] = useState<number | null>(null)
+
+  // Fetch inventory items
+  const fetchInventory = useCallback(async () => {
+    try {
+      setLoadingInventory(true)
+      const response = await fetch('/api/inventory')
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to fetch inventory')
+      }
+
+      const data = await response.json()
+      setInventoryItems(data)
+      setLoadingInventory(false)
+    } catch (err) {
+      console.error('Error fetching inventory:', err)
+      setLoadingInventory(false)
+    }
+  }, [])
+
+  // Load inventory data when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchInventory()
+    }
+  }, [isOpen, fetchInventory])
+
+  // Filter inventory items when search query changes
+  useEffect(() => {
+    if (searchQuery.trim() === '') {
+      setFilteredItems(inventoryItems)
+    } else {
+      const lowerQuery = searchQuery.toLowerCase()
+      const filtered = inventoryItems.filter(item =>
+        item.name.toLowerCase().includes(lowerQuery) ||
+        item.sku.toLowerCase().includes(lowerQuery) ||
+        item.category.toLowerCase().includes(lowerQuery) ||
+        item.brand.toLowerCase().includes(lowerQuery)
+      )
+      setFilteredItems(filtered)
+    }
+  }, [searchQuery, inventoryItems])
 
   const calculateTotals = () => {
     const subtotal = formData.items.reduce((sum, item) => sum + item.total, 0)
@@ -51,10 +105,12 @@ export default function CreateInvoiceModal({ isOpen, onClose, onAdd }: CreateInv
     const item = { ...newItems[index] }
 
     if (field === 'quantity' || field === 'unitPrice') {
-      item[field] = Number(value)
+      item[field] = typeof value === 'string' ? Number(value) : value
       item.total = item.quantity * item.unitPrice
-    } else {
-      item[field] = value as string
+    } else if (field === 'description') {
+      item[field] = String(value)
+    } else if (field === 'total') {
+      item[field] = typeof value === 'string' ? Number(value) : value
     }
 
     newItems[index] = item
@@ -64,13 +120,38 @@ export default function CreateInvoiceModal({ isOpen, onClose, onAdd }: CreateInv
   const addLineItem = () => {
     setFormData({
       ...formData,
-      items: [...formData.items, { description: '', quantity: 1, unitPrice: 0, total: 0 }]
+      items: [...formData.items, { description: '', quantity: 1, unitPrice: 0, total: 0, inventoryId: undefined, sku: undefined } as LineItem]
     })
   }
 
   const removeLineItem = (index: number) => {
     const newItems = formData.items.filter((_, i) => i !== index)
     setFormData({ ...formData, items: newItems })
+  }
+
+  const openInventorySelector = (index: number) => {
+    setCurrentItemIndex(index)
+    setSearchQuery('')
+    setFilteredItems(inventoryItems)
+    setShowInventoryModal(true)
+  }
+
+  const selectInventoryItem = (item: InventoryItem) => {
+    if (currentItemIndex === null) return
+
+    const newItems = [...formData.items]
+    newItems[currentItemIndex] = {
+      description: item.name,
+      quantity: 1,
+      unitPrice: item.price,
+      total: item.price,
+      inventoryId: item.id,
+      sku: item.sku
+    }
+
+    setFormData({ ...formData, items: newItems })
+    setShowInventoryModal(false)
+    setCurrentItemIndex(null)
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -95,7 +176,7 @@ export default function CreateInvoiceModal({ isOpen, onClose, onAdd }: CreateInv
       customerAddress: '',
       date: new Date().toISOString().split('T')[0],
       dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      items: [{ description: '', quantity: 1, unitPrice: 0, total: 0 }],
+      items: [{ description: '', quantity: 1, unitPrice: 0, total: 0, inventoryId: undefined, sku: undefined }] as LineItem[],
       taxRate: 8,
     })
     onClose()
@@ -238,13 +319,29 @@ export default function CreateInvoiceModal({ isOpen, onClose, onAdd }: CreateInv
                   {formData.items.map((item, index) => (
                     <tr key={index}>
                       <td className="px-6 py-4">
-                        <input
-                          type="text"
-                          value={item.description}
-                          onChange={(e) => updateLineItem(index, 'description', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D6BFF] focus:border-transparent"
-                          required
-                        />
+                        <div className="flex">
+                          <input
+                            type="text"
+                            value={item.description}
+                            onChange={(e) => updateLineItem(index, 'description', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-200 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-[#2D6BFF] focus:border-transparent"
+                            placeholder="Type description or select from inventory"
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => openInventorySelector(index)}
+                            className="px-3 py-2 bg-gray-100 hover:bg-gray-200 border border-l-0 border-gray-200 rounded-r-lg"
+                            title="Select from inventory"
+                          >
+                            <Package className="h-5 w-5 text-gray-500" />
+                          </button>
+                        </div>
+                        {item.sku && (
+                          <div className="mt-1 text-xs text-gray-500">
+                            SKU: {item.sku}
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         <input
@@ -339,6 +436,76 @@ export default function CreateInvoiceModal({ isOpen, onClose, onAdd }: CreateInv
           </div>
         </form>
       </div>
+
+      {/* Inventory Item Selector Modal */}
+      {showInventoryModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold">Select Inventory Item</h3>
+              <button
+                onClick={() => setShowInventoryModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-4 border-b">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by name, SKU, category, or brand"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D6BFF]"
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4">
+              {loadingInventory ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 text-[#2D6BFF] animate-spin" />
+                  <span className="ml-2 text-gray-600">Loading inventory items...</span>
+                </div>
+              ) : filteredItems.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  {searchQuery ? 'No items match your search' : 'No inventory items available'}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-2">
+                  {filteredItems.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => selectInventoryItem(item)}
+                      className="flex items-start p-3 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors"
+                    >
+                      <div className="h-12 w-12 bg-gray-100 rounded flex-shrink-0 flex items-center justify-center mr-3">
+                        {item.imageUrl ? (
+                          <img src={item.imageUrl} alt={item.name} className="h-10 w-10 object-contain" />
+                        ) : (
+                          <Package className="h-6 w-6 text-gray-400" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-medium">{item.name}</div>
+                        <div className="flex text-sm text-gray-500 mt-1">
+                          <span className="mr-3">SKU: {item.sku}</span>
+                          <span className="mr-3">Price: ${item.price.toFixed(2)}</span>
+                          <span>Available: {item.quantity}</span>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 } 
