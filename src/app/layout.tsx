@@ -20,7 +20,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} min-h-screen bg-[#F8F8F8]`}>
+      <body className={`${inter.className} min-h-screen bg-[#F8F8F8]`} suppressHydrationWarning>
         <GoogleMapsProvider>
           {children}
         </GoogleMapsProvider>

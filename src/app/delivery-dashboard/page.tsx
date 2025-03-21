@@ -20,7 +20,7 @@ import {
   X
 } from 'lucide-react'
 import Image from 'next/image'
-import { driversService, type Driver, DriversError } from '@/services/drivers'
+import { getDrivers, addDriver, deleteDriver, updateDriverStatus, DriversError, type Driver } from '@/services/drivers'
 
 interface ActiveDelivery {
   id: string;
@@ -126,7 +126,7 @@ export default function DeliveryDashboard() {
   const loadDrivers = async () => {
     try {
       setIsLoading(true);
-      const data = await driversService.getDrivers();
+      const data = await getDrivers();
       setDrivers(data);
       setError(null);
     } catch (err) {
@@ -162,12 +162,14 @@ export default function DeliveryDashboard() {
       const driverData = {
         name: newDriver.name.trim(),
         email: newDriver.email.trim().toLowerCase(),
-        phone: newDriver.phone.trim()
+        phone: newDriver.phone.trim(),
+        status: 'Available' as any,
+        avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${newDriver.name.trim()}`
       };
 
       console.log('Submitting driver data:', driverData); // Debug log
 
-      const driver = await driversService.addDriver(driverData);
+      const driver = await addDriver(driverData);
       console.log('Driver added successfully:', driver); // Debug log
 
       setDrivers([...drivers, driver]);
@@ -186,7 +188,7 @@ export default function DeliveryDashboard() {
 
   const handleRemoveDriver = async (driverId: string) => {
     try {
-      await driversService.deleteDriver(driverId);
+      await deleteDriver(driverId);
       setDrivers(drivers.filter(driver => driver.id !== driverId));
     } catch (err) {
       if (err instanceof DriversError) {
@@ -232,8 +234,8 @@ export default function DeliveryDashboard() {
                   <metric.icon className="h-6 w-6" style={{ color: metric.color }} />
                 </div>
                 <span className={`text-sm font-medium px-2 py-1 rounded-full ${metric.change.startsWith('+')
-                    ? 'text-[#00C48C] bg-[#00C48C]/10'
-                    : 'text-[#FF9500] bg-[#FF9500]/10'
+                  ? 'text-[#00C48C] bg-[#00C48C]/10'
+                  : 'text-[#FF9500] bg-[#FF9500]/10'
                   }`}>
                   {metric.change}
                 </span>
@@ -284,10 +286,10 @@ export default function DeliveryDashboard() {
                       <td className="py-4">{order.customer}</td>
                       <td className="py-4">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${order.status === 'Delivered'
-                            ? 'bg-[#00C48C]/10 text-[#00C48C]'
-                            : order.status === 'In Progress'
-                              ? 'bg-[#2D6BFF]/10 text-[#2D6BFF]'
-                              : 'bg-[#FF9500]/10 text-[#FF9500]'
+                          ? 'bg-[#00C48C]/10 text-[#00C48C]'
+                          : order.status === 'In Progress'
+                            ? 'bg-[#2D6BFF]/10 text-[#2D6BFF]'
+                            : 'bg-[#FF9500]/10 text-[#FF9500]'
                           }`}>
                           {order.status}
                         </span>
@@ -493,10 +495,10 @@ export default function DeliveryDashboard() {
                       <div className="ml-3">
                         <h3 className="text-sm font-medium text-gray-900">{driver.name}</h3>
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${driver.status === 'Available'
-                            ? 'bg-[#00C48C]/10 text-[#00C48C]'
-                            : driver.status === 'On Delivery'
-                              ? 'bg-[#2D6BFF]/10 text-[#2D6BFF]'
-                              : 'bg-gray-100 text-gray-600'
+                          ? 'bg-[#00C48C]/10 text-[#00C48C]'
+                          : driver.status === 'On Delivery'
+                            ? 'bg-[#2D6BFF]/10 text-[#2D6BFF]'
+                            : 'bg-gray-100 text-gray-600'
                           }`}>
                           {driver.status}
                         </span>
@@ -526,22 +528,6 @@ export default function DeliveryDashboard() {
                 </div>
               ))
             )}
-          </div>
-        </div>
-
-        {/* Map View */}
-        <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-[#1A1A1A] mb-2 sm:mb-0">
-              Live Delivery Tracking
-            </h2>
-            <button className="inline-flex items-center text-sm text-[#2D6BFF] hover:text-[#2D6BFF]/90 transition-colors">
-              <span className="mr-2">Full Screen</span>
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="h-[300px] md:h-[400px] flex items-center justify-center text-gray-400 border-2 border-dashed border-gray-200 rounded-lg hover:border-[#2D6BFF]/50 transition-colors">
-            Map Component Placeholder - Live Driver Locations & Routes
           </div>
         </div>
       </div>

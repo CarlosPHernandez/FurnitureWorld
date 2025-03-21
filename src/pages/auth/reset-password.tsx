@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
 import Link from 'next/link'
 import { Mail, Loader2, ArrowLeft } from 'lucide-react'
 import AuthLayout from './components/AuthLayout'
+import { createClient } from '@/lib/supabase'
 
 export default function ResetPassword() {
   const [email, setEmail] = useState('')
@@ -12,10 +12,7 @@ export default function ResetPassword() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const supabase = createClient()
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault()

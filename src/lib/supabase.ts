@@ -1,34 +1,28 @@
-import { createBrowserClient } from '@supabase/ssr'
+'use client'
+
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { Database } from '@/types/database.types'
 
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-  throw new Error(
-    'Missing environment variable: NEXT_PUBLIC_SUPABASE_URL'
-  )
-}
+// Function to create a Supabase client
+export function createClient() {
+  // Hardcoded values as fallback (only use in development)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://xymquhylknnrzubnolup.supabase.co'
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5bXF1aHlsa25ucnp1Ym5vbHVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk1NTgzMjYsImV4cCI6MjA1NTEzNDMyNn0.45hUbJYyO1f6DvSlEmAFMWimvvXJMg-7JNfTRv7Io94'
 
-if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-  throw new Error(
-    'Missing environment variable: NEXT_PUBLIC_SUPABASE_ANON_KEY'
-  )
-}
-
-// Create a single supabase client for interacting with your database
-export const supabase = createBrowserClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  {
-    auth: {
-      flowType: 'pkce',
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-      persistSession: true,
-      storageKey: 'supabase.auth.token',
-    },
-    global: {
-      headers: {
-        'X-Client-Info': 'supabase-js-web',
-      },
+  if (typeof window !== 'undefined') {
+    if (!supabaseUrl || supabaseUrl === 'your_supabase_project_url') {
+      console.error('Missing environment variable: NEXT_PUBLIC_SUPABASE_URL')
+    }
+    if (!supabaseKey || supabaseKey === 'your_supabase_anon_key') {
+      console.error('Missing environment variable: NEXT_PUBLIC_SUPABASE_ANON_KEY')
     }
   }
-) 
+
+  return createClientComponentClient<Database>({
+    supabaseUrl,
+    supabaseKey,
+  })
+}
+
+// For backward compatibility
+export const supabase = createClient() 

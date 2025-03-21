@@ -24,12 +24,10 @@ export default function DeliveryLayout({
 
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
-      <div className="flex-1 lg:ml-60">
+      <div className="flex-1 lg:ml-0">
         <Header />
         <main className="pt-[60px]">
-          <div className="p-2 md:p-4">
-            {children}
-          </div>
+          {children}
         </main>
       </div>
     </div>

@@ -106,23 +106,23 @@ export default function CreateInvoiceModal({ isOpen, onClose, onAdd }: CreateInv
   const { subtotal, tax, total } = calculateTotals()
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-6">
+      <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-[#1A1A1A]">Create New Invoice</h2>
+          <h2 className="text-xl font-bold text-gray-900">Create New Invoice</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-500 hover:text-gray-700 focus:outline-none"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-8">
           {/* Customer Information */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium text-[#1A1A1A]">Customer Information</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <h3 className="text-lg font-medium text-gray-900">Customer Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label htmlFor="customerName" className="block text-sm font-medium text-gray-700 mb-1">
                   Customer Name *
@@ -132,7 +132,7 @@ export default function CreateInvoiceModal({ isOpen, onClose, onAdd }: CreateInv
                   id="customerName"
                   value={formData.customerName}
                   onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D6BFF] focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D6BFF] focus:border-transparent"
                   required
                 />
               </div>
@@ -146,7 +146,7 @@ export default function CreateInvoiceModal({ isOpen, onClose, onAdd }: CreateInv
                   id="customerEmail"
                   value={formData.customerEmail}
                   onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D6BFF] focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D6BFF] focus:border-transparent"
                 />
               </div>
 
@@ -159,7 +159,7 @@ export default function CreateInvoiceModal({ isOpen, onClose, onAdd }: CreateInv
                   id="customerPhone"
                   value={formData.customerPhone}
                   onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D6BFF] focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D6BFF] focus:border-transparent"
                 />
               </div>
 
@@ -172,14 +172,14 @@ export default function CreateInvoiceModal({ isOpen, onClose, onAdd }: CreateInv
                   value={formData.customerAddress}
                   onChange={(e) => setFormData({ ...formData, customerAddress: e.target.value })}
                   rows={2}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D6BFF] focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D6BFF] focus:border-transparent"
                 />
               </div>
             </div>
           </div>
 
           {/* Invoice Dates */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">
                 Invoice Date *
@@ -189,7 +189,7 @@ export default function CreateInvoiceModal({ isOpen, onClose, onAdd }: CreateInv
                 id="date"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D6BFF] focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D6BFF] focus:border-transparent"
                 required
               />
             </div>
@@ -203,7 +203,7 @@ export default function CreateInvoiceModal({ isOpen, onClose, onAdd }: CreateInv
                 id="dueDate"
                 value={formData.dueDate}
                 onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D6BFF] focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D6BFF] focus:border-transparent"
                 required
               />
             </div>
@@ -212,7 +212,7 @@ export default function CreateInvoiceModal({ isOpen, onClose, onAdd }: CreateInv
           {/* Line Items */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium text-[#1A1A1A]">Items</h3>
+              <h3 className="text-lg font-medium text-gray-900">Items</h3>
               <button
                 type="button"
                 onClick={addLineItem}
@@ -223,54 +223,54 @@ export default function CreateInvoiceModal({ isOpen, onClose, onAdd }: CreateInv
               </button>
             </div>
 
-            <div className="border rounded-lg overflow-hidden">
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Unit Price</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase"></th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Unit Price</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {formData.items.map((item, index) => (
                     <tr key={index}>
-                      <td className="px-4 py-2">
+                      <td className="px-6 py-4">
                         <input
                           type="text"
                           value={item.description}
                           onChange={(e) => updateLineItem(index, 'description', e.target.value)}
-                          className="w-full px-2 py-1 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-[#2D6BFF] focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D6BFF] focus:border-transparent"
                           required
                         />
                       </td>
-                      <td className="px-4 py-2">
+                      <td className="px-6 py-4">
                         <input
                           type="number"
                           min="1"
                           value={item.quantity}
                           onChange={(e) => updateLineItem(index, 'quantity', e.target.value)}
-                          className="w-20 px-2 py-1 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-[#2D6BFF] focus:border-transparent"
+                          className="w-20 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D6BFF] focus:border-transparent"
                           required
                         />
                       </td>
-                      <td className="px-4 py-2">
+                      <td className="px-6 py-4">
                         <input
                           type="number"
                           min="0"
                           step="0.01"
                           value={item.unitPrice}
                           onChange={(e) => updateLineItem(index, 'unitPrice', e.target.value)}
-                          className="w-32 px-2 py-1 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-[#2D6BFF] focus:border-transparent"
+                          className="w-32 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D6BFF] focus:border-transparent"
                           required
                         />
                       </td>
-                      <td className="px-4 py-2">
+                      <td className="px-6 py-4 font-medium">
                         ${item.total.toFixed(2)}
                       </td>
-                      <td className="px-4 py-2">
+                      <td className="px-6 py-4">
                         {formData.items.length > 1 && (
                           <button
                             type="button"
@@ -289,9 +289,9 @@ export default function CreateInvoiceModal({ isOpen, onClose, onAdd }: CreateInv
           </div>
 
           {/* Totals */}
-          <div className="border-t pt-4">
-            <div className="flex justify-end space-y-2">
-              <div className="w-64 space-y-2">
+          <div className="border-t pt-6">
+            <div className="flex justify-end">
+              <div className="w-72 space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Subtotal:</span>
                   <span className="font-medium">${subtotal.toFixed(2)}</span>
@@ -305,7 +305,7 @@ export default function CreateInvoiceModal({ isOpen, onClose, onAdd }: CreateInv
                       max="100"
                       value={formData.taxRate}
                       onChange={(e) => setFormData({ ...formData, taxRate: Number(e.target.value) })}
-                      className="w-16 px-2 py-1 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-[#2D6BFF] focus:border-transparent"
+                      className="w-16 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D6BFF] focus:border-transparent"
                     />
                     <span className="ml-1">%</span>
                   </div>
@@ -314,7 +314,7 @@ export default function CreateInvoiceModal({ isOpen, onClose, onAdd }: CreateInv
                   <span className="text-gray-600">Tax:</span>
                   <span className="font-medium">${tax.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-lg font-bold border-t pt-2">
+                <div className="flex justify-between text-lg font-bold border-t pt-3 mt-3">
                   <span>Total:</span>
                   <span>${total.toFixed(2)}</span>
                 </div>
@@ -322,17 +322,17 @@ export default function CreateInvoiceModal({ isOpen, onClose, onAdd }: CreateInv
             </div>
           </div>
 
-          <div className="flex justify-end space-x-4 mt-6">
+          <div className="flex justify-end space-x-4 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
+              className="px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 text-sm text-white bg-[#2D6BFF] hover:bg-[#2D6BFF]/90 rounded-lg"
+              className="px-6 py-3 text-sm font-medium text-white bg-[#2D6BFF] hover:bg-[#2D6BFF]/90 rounded-lg transition-colors"
             >
               Create Invoice
             </button>

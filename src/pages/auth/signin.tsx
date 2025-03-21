@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { Mail, Lock, Loader2 } from 'lucide-react'
 import AuthLayout from './components/AuthLayout'
+import { createClient } from '@/lib/supabase'
 
 export default function SignIn() {
   const [email, setEmail] = useState('')
@@ -14,10 +14,7 @@ export default function SignIn() {
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const supabase = createClient()
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()

@@ -8,18 +8,22 @@ import {
   Package,
   MapPin,
   Receipt,
-  FileSearch,
   Search,
   BoxIcon,
+  CreditCard,
+  TrendingUp,
+  Truck,
+  Users,
 } from 'lucide-react'
 
 const navigation = [
-  { name: 'Dashboard', href: '/delivery-dashboard', icon: LayoutDashboard },
+  { name: 'Sales Dashboard', href: '/', icon: TrendingUp },
+  { name: 'Delivery Dashboard', href: '/delivery-dashboard', icon: Truck },
   { name: 'Inventory', href: '/inventory', icon: BoxIcon },
-  { name: 'Route Planning', href: '/route-planning', icon: MapPin },
   { name: 'Deliveries', href: '/deliveries', icon: Package },
-  { name: 'Invoice Scanner', href: '/invoice-scanner', icon: FileSearch },
-  { name: 'Delivery Invoices', href: '/delivery-invoices', icon: Receipt },
+  { name: 'Invoices', href: '/invoices', icon: Receipt },
+  { name: 'Credit Customers', href: '/credit-management', icon: CreditCard },
+  { name: 'Customers', href: '/customers', icon: Users },
   { name: 'Search', href: '/search', icon: Search },
 ]
 
@@ -42,9 +46,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       )}
 
       {/* Sidebar */}
-      <div className={`fixed top-0 left-0 h-full w-60 bg-white border-r border-[#E5E5E5] p-4 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:relative lg:z-0`}>
-        <div className="flex flex-col h-full">
+      <div className={`fixed top-0 left-0 h-full w-60 bg-white border-r border-[#E5E5E5] transform transition-transform duration-300 ease-in-out lg:translate-x-0 z-30 ${isOpen ? 'translate-x-0' : '-translate-x-full'
+        } lg:sticky lg:top-0`}>
+        <div className="flex flex-col h-full p-4">
           <div className="mb-8 bg-white">
             <Link href="/" className="block">
               <div className="relative w-[150px] h-[50px]">
@@ -68,8 +72,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                     <Link
                       href={item.href}
                       className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive
-                          ? 'bg-[#2D6BFF] text-white'
-                          : 'text-[#1A1A1A] hover:bg-gray-100'
+                        ? 'bg-[#2D6BFF] text-white'
+                        : 'text-[#1A1A1A] hover:bg-gray-100'
                         }`}
                       onClick={() => {
                         if (window.innerWidth < 1024) {

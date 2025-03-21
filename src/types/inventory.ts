@@ -27,7 +27,6 @@ export interface InventoryItem {
   minQuantity: number;
   price: number;
   cost: number; // Cost of Goods Sold
-  lastUpdated: string;
   imageUrl: string;
   // Additional furniture-specific fields
   dimensions: Dimensions;
@@ -66,4 +65,9 @@ export interface InventoryItem {
       priceModifier: number;
     }[];
   };
+  // Database fields
+  created_at?: string;
+  updated_at?: string;
+  // For backward compatibility
+  lastUpdated?: string;
 } 

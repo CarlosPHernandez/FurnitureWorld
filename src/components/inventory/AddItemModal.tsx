@@ -35,10 +35,26 @@ const categories = [
   'Decor'
 ]
 
+// Common furniture brands
+const brands = [
+  'Ashley Furniture',
+  'Crown Mark',
+  'Galaxy Furniture',
+  'Homey Design',
+  'Coaster Furniture',
+  'ACME Furniture',
+  'Liberty Furniture',
+  'Signature Design',
+  'Global Furniture USA',
+  'Meridian Furniture'
+]
+
 export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalProps) {
   const [name, setName] = useState('')
   const [sku, setSku] = useState('')
   const [category, setCategory] = useState('')
+  const [brand, setBrand] = useState('')
+  const [customBrand, setCustomBrand] = useState('')
   const [quantity, setQuantity] = useState('')
   const [price, setPrice] = useState('')
   const [cost, setCost] = useState('')
@@ -70,23 +86,32 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Parse dimensions only if they have been entered
+    let dimensionsObject = null;
+    if (dimensions && dimensions !== '0 x 0 x 0 cm') {
+      const parts = dimensions.split(' ');
+      dimensionsObject = {
+        length: Number(parts[0]) || 0,
+        width: Number(parts[2]) || 0,
+        height: Number(parts[4]) || 0,
+        unit: parts[6] as 'cm' | 'in' || 'cm'
+      };
+    }
+
     onAdd({
       name,
       sku,
       category,
+      brand: brand === 'Other' ? customBrand : brand,
       quantity: Number(quantity),
       minQuantity: 0,
       price: Number(price),
       cost: Number(cost),
       imageUrl,
-      dimensions: {
-        length: Number(dimensions.split(' ')[0]),
-        width: Number(dimensions.split(' ')[2]),
-        height: Number(dimensions.split(' ')[4]),
-        unit: dimensions.split(' ')[6] as 'cm' | 'in'
-      },
-      weight: Number(weight),
-      weightUnit: weightUnit as 'kg' | 'lb',
+      dimensions: dimensionsObject,
+      weight: weight ? Number(weight) : null,
+      weightUnit,
       materials: materials.split(',').map(m => m.trim()).filter(m => m),
       finish,
       color,
@@ -112,6 +137,8 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
     setName('')
     setSku('')
     setCategory('')
+    setBrand('')
+    setCustomBrand('')
     setQuantity('')
     setPrice('')
     setCost('')
@@ -181,14 +208,46 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Category</label>
-                <input
-                  type="text"
+                <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                   className="w-full p-2 border rounded-md"
                   required
-                />
+                >
+                  <option value="">Select Category</option>
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
               </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Brand</label>
+                <select
+                  value={brand}
+                  onChange={(e) => setBrand(e.target.value)}
+                  className="w-full p-2 border rounded-md"
+                  required
+                >
+                  <option value="">Select Brand</option>
+                  {brands.map((brandName) => (
+                    <option key={brandName} value={brandName}>{brandName}</option>
+                  ))}
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              {brand === 'Other' && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">Custom Brand</label>
+                  <input
+                    type="text"
+                    value={customBrand}
+                    onChange={(e) => setCustomBrand(e.target.value)}
+                    className="w-full p-2 border rounded-md"
+                    required={brand === 'Other'}
+                    placeholder="Enter brand name"
+                  />
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium mb-1">Status</label>
                 <select
@@ -248,61 +307,35 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
 
           {/* Dimensions and Weight */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">Dimensions and Weight</h3>
+            <h3 className="text-lg font-medium">Dimensions & Weight <span className="text-sm font-normal text-gray-500">(Optional)</span></h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Length</label>
-                  <input
-                    type="number"
-                    value={dimensions.split(' ')[0]}
-                    onChange={(e) => setDimensions(e.target.value + ' ' + dimensions.split(' ')[1] + ' ' + dimensions.split(' ')[2] + ' ' + dimensions.split(' ')[3] + ' ' + dimensions.split(' ')[4] + ' ' + dimensions.split(' ')[5] + ' ' + dimensions.split(' ')[6])}
-                    className="w-full p-2 border rounded-md"
-                    min="0"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Width</label>
-                  <input
-                    type="number"
-                    value={dimensions.split(' ')[2]}
-                    onChange={(e) => setDimensions(dimensions.split(' ')[0] + ' ' + e.target.value + ' ' + dimensions.split(' ')[2] + ' ' + dimensions.split(' ')[3] + ' ' + dimensions.split(' ')[4] + ' ' + dimensions.split(' ')[5] + ' ' + dimensions.split(' ')[6])}
-                    className="w-full p-2 border rounded-md"
-                    min="0"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Height</label>
-                  <input
-                    type="number"
-                    value={dimensions.split(' ')[4]}
-                    onChange={(e) => setDimensions(dimensions.split(' ')[0] + ' ' + dimensions.split(' ')[1] + ' ' + dimensions.split(' ')[2] + ' ' + dimensions.split(' ')[3] + ' ' + e.target.value + ' ' + dimensions.split(' ')[5] + ' ' + dimensions.split(' ')[6])}
-                    className="w-full p-2 border rounded-md"
-                    min="0"
-                    required
-                  />
-                </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Dimensions (L x W x H)</label>
+                <input
+                  type="text"
+                  value={dimensions}
+                  onChange={(e) => setDimensions(e.target.value)}
+                  className="w-full p-2 border rounded-md"
+                  placeholder="e.g. 100 x 50 x 75 cm"
+                />
+                <p className="text-xs text-gray-500 mt-1">Format: Length x Width x Height Unit</p>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Weight</label>
+              <div>
+                <label className="block text-sm font-medium mb-1">Weight</label>
+                <div className="flex">
                   <input
                     type="number"
                     value={weight}
                     onChange={(e) => setWeight(e.target.value)}
-                    className="w-full p-2 border rounded-md"
+                    className="w-full p-2 border rounded-md rounded-r-none"
+                    placeholder="e.g. 25"
                     min="0"
-                    required
+                    step="0.01"
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Unit</label>
                   <select
                     value={weightUnit}
                     onChange={(e) => setWeightUnit(e.target.value as 'kg' | 'lb')}
-                    className="w-full p-2 border rounded-md"
+                    className="p-2 border border-l-0 rounded-md rounded-l-none"
                   >
                     <option value="kg">kg</option>
                     <option value="lb">lb</option>
@@ -314,7 +347,7 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
 
           {/* Materials and Finish */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">Materials and Finish</h3>
+            <h3 className="text-lg font-medium">Materials and Finish <span className="text-sm font-normal text-gray-500">(Optional)</span></h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Materials</label>
@@ -333,6 +366,7 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
                   value={finish}
                   onChange={(e) => setFinish(e.target.value)}
                   className="w-full p-2 border rounded-md"
+                  placeholder="e.g. Matte, Glossy, Natural"
                 />
               </div>
               <div>
@@ -342,6 +376,7 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
                   value={color}
                   onChange={(e) => setColor(e.target.value)}
                   className="w-full p-2 border rounded-md"
+                  placeholder="e.g. Brown, White, Black"
                 />
               </div>
             </div>
@@ -349,7 +384,7 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
 
           {/* Assembly and Warranty */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">Assembly and Warranty</h3>
+            <h3 className="text-lg font-medium">Assembly and Warranty <span className="text-sm font-normal text-gray-500">(Optional)</span></h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex items-center">
                 <input
@@ -396,7 +431,7 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
 
           {/* Location */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">Location</h3>
+            <h3 className="text-lg font-medium">Location <span className="text-sm font-normal text-gray-500">(Optional)</span></h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Warehouse</label>
@@ -414,6 +449,7 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
                   value={location.aisle}
                   onChange={(e) => setLocation({ ...location, aisle: e.target.value })}
                   className="w-full p-2 border rounded-md"
+                  placeholder="e.g. A1, B2"
                 />
               </div>
               <div>
@@ -423,6 +459,7 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
                   value={location.shelf}
                   onChange={(e) => setLocation({ ...location, shelf: e.target.value })}
                   className="w-full p-2 border rounded-md"
+                  placeholder="e.g. S1, S2"
                 />
               </div>
             </div>
@@ -430,7 +467,7 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
 
           {/* Additional Information */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">Additional Information</h3>
+            <h3 className="text-lg font-medium">Additional Information <span className="text-sm font-normal text-gray-500">(Optional)</span></h3>
             <div className="grid grid-cols-1 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Tags</label>
@@ -449,6 +486,7 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
                   onChange={(e) => setNotes(e.target.value)}
                   className="w-full p-2 border rounded-md"
                   rows={3}
+                  placeholder="Any additional notes about the item"
                 />
               </div>
             </div>
@@ -495,6 +533,23 @@ export default function AddItemModal({ isOpen, onClose, onAdd }: AddItemModalPro
                 className="mr-2"
               />
               <label className="text-sm font-medium">Customization Available</label>
+            </div>
+          </div>
+
+          {/* Supplier Information */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Supplier Information <span className="text-sm font-normal text-gray-500">(Optional)</span></h3>
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Supplier Name</label>
+                <input
+                  type="text"
+                  value={supplier}
+                  onChange={(e) => setSupplier(e.target.value)}
+                  className="w-full p-2 border rounded-md"
+                  placeholder="e.g. Furniture Supplier Inc."
+                />
+              </div>
             </div>
           </div>
 

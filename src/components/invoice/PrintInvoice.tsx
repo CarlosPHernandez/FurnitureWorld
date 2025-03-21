@@ -1,14 +1,15 @@
 'use client'
 
 import { forwardRef } from 'react'
+import Image from 'next/image'
 
 interface PrintInvoiceProps {
   invoice: {
     invoiceNumber: string
     customerName: string
-    customerEmail: string
-    customerPhone: string
-    customerAddress: string
+    customerEmail?: string
+    customerPhone?: string
+    customerAddress?: string
     date: string
     dueDate: string
     items: {
@@ -20,11 +21,12 @@ interface PrintInvoiceProps {
     subtotal: number
     tax: number
     total: number
-    status: string
+    notes?: string
   }
+  companyLogo?: string
 }
 
-const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(({ invoice }, ref) => {
+const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(({ invoice, companyLogo }, ref) => {
   return (
     <div ref={ref} className="p-8 bg-white">
       {/* Header */}
@@ -33,8 +35,20 @@ const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(({ invoice },
           <h1 className="text-2xl font-bold text-gray-900">INVOICE</h1>
           <p className="text-gray-600 mt-1">{invoice.invoiceNumber}</p>
         </div>
-        <div className="text-right">
-          <h2 className="text-xl font-bold text-gray-900">Family Mattress</h2>
+        <div className="text-right flex flex-col items-end">
+          {companyLogo ? (
+            <div className="mb-2">
+              <Image
+                src={companyLogo}
+                alt="Company Logo"
+                width={150}
+                height={60}
+                className="object-contain"
+              />
+            </div>
+          ) : (
+            <h2 className="text-xl font-bold text-gray-900">Family Mattress</h2>
+          )}
           <p className="text-gray-600">123 Furniture Street</p>
           <p className="text-gray-600">City, State 12345</p>
           <p className="text-gray-600">Phone: (555) 123-4567</p>
@@ -108,10 +122,19 @@ const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(({ invoice },
         </div>
       </div>
 
+      {/* Notes */}
+      {invoice.notes && (
+        <div className="mb-8">
+          <h3 className="text-gray-600 font-medium mb-2">Notes:</h3>
+          <p className="text-gray-900 whitespace-pre-line">{invoice.notes}</p>
+        </div>
+      )}
+
       {/* Footer */}
       <div className="text-center text-gray-600 text-sm mt-16">
         <p>Thank you for your business!</p>
-        <p className="mt-1">Please make checks payable to: Family Mattress</p>
+        <p className="mt-1">Payment is due by {invoice.dueDate}</p>
+        <p className="mt-4">For questions regarding this invoice, please contact us at (555) 123-4567</p>
       </div>
     </div>
   )

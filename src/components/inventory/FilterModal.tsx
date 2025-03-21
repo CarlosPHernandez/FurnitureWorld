@@ -11,7 +11,7 @@ interface FilterModalProps {
     priceRange: number[]
     stockStatus: string
   }
-  onApplyFilters: (filters: {
+  onFiltersChange: (filters: {
     category: string
     brand: string
     priceRange: number[]
@@ -25,14 +25,14 @@ export default function FilterModal({
   isOpen,
   onClose,
   filters,
-  onApplyFilters,
+  onFiltersChange,
   categories,
   brands
 }: FilterModalProps) {
   const [localFilters, setLocalFilters] = useState(filters)
 
   const handleApply = () => {
-    onApplyFilters(localFilters)
+    onFiltersChange(localFilters)
     onClose()
   }
 
