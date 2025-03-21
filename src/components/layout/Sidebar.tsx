@@ -18,7 +18,6 @@ import {
 
 const navigation = [
   { name: 'Sales Dashboard', href: '/', icon: TrendingUp },
-  { name: 'Delivery Dashboard', href: '/delivery-dashboard', icon: Truck },
   { name: 'Inventory', href: '/inventory', icon: BoxIcon },
   { name: 'Deliveries', href: '/deliveries', icon: Package },
   { name: 'Invoices', href: '/invoices', icon: Receipt },

@@ -32,7 +32,6 @@ export async function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     '/',
-    '/delivery-dashboard',
     '/customer-report',
     '/courier-payroll',
     '/delivery-data',
