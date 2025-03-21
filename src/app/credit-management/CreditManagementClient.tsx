@@ -320,6 +320,7 @@ export default function CreditManagementClient({ initialCreditAccounts }: Credit
           customerId={selectedCustomer.id}
           customerName={selectedCustomer.fullName}
           remainingBalance={selectedCustomer.remainingBalance}
+          customer={selectedCustomer}
           onClose={() => {
             setShowPaymentForm(false)
             setSelectedCustomer(null)
@@ -376,11 +377,14 @@ export default function CreditManagementClient({ initialCreditAccounts }: Credit
                 )
               }
 
-              setShowPaymentForm(false)
-              setSelectedCustomer(null)
+              // No longer closing the form here - will be closed after printing receipt
+              // setShowPaymentForm(false)
+              // setSelectedCustomer(null)
             } catch (error) {
               console.error('Error recording payment:', error)
               alert(`Failed to record payment: ${error instanceof Error ? error.message : 'Unknown error'}`)
+              setShowPaymentForm(false)
+              setSelectedCustomer(null)
             } finally {
               setIsSubmitting(false);
             }

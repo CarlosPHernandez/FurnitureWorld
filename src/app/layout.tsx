@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { GoogleMapsProvider } from '@/contexts/GoogleMapsContext'
+import { BusinessProvider } from '@/contexts/BusinessContext'
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,7 +23,9 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.className} min-h-screen bg-[#F8F8F8]`} suppressHydrationWarning>
         <GoogleMapsProvider>
-          {children}
+          <BusinessProvider>
+            {children}
+          </BusinessProvider>
         </GoogleMapsProvider>
       </body>
     </html>

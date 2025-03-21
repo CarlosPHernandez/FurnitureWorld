@@ -13,7 +13,8 @@ import {
   Clock,
   XCircle,
   Download,
-  Eye
+  Eye,
+  Settings
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { Invoice, InvoiceItem } from '@/types/invoice'
@@ -21,6 +22,7 @@ import PrintInvoice from '@/components/invoice/PrintInvoice'
 import CreateInvoiceModal from '@/components/invoice/CreateInvoiceModal'
 import { jsPDF } from 'jspdf'
 import html2canvas from 'html2canvas'
+import { useBusinessInfo, BusinessInfo } from '@/contexts/BusinessContext'
 
 export default function InvoiceManagement() {
   const [invoices, setInvoices] = useState<Invoice[]>([])
@@ -33,9 +35,10 @@ export default function InvoiceManagement() {
   const [error, setError] = useState<string | null>(null)
   const [showPreview, setShowPreview] = useState(true)
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
+  const [showBusinessSettingsModal, setShowBusinessSettingsModal] = useState(false)
 
-  // Use a constant logo path
-  const companyLogo = '/Logo-matters-1.webp'
+  // Use the business context instead of local state
+  const { businessInfo, updateBusinessInfo } = useBusinessInfo()
 
   const printRef = useRef<HTMLDivElement>(null)
 
@@ -269,6 +272,14 @@ export default function InvoiceManagement() {
             />
           </div>
           <button
+            onClick={() => setShowBusinessSettingsModal(true)}
+            className="bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg px-4 py-2 flex items-center"
+            title="Business Information Settings"
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Settings
+          </button>
+          <button
             onClick={() => setShowCreateModal(true)}
             className="bg-[#2D6BFF] text-white rounded-lg px-4 py-2 flex items-center"
           >
@@ -444,6 +455,13 @@ export default function InvoiceManagement() {
                   <Eye className="h-5 w-5 mr-2" />
                   {showPreview ? 'Hide Preview' : 'Show Preview'}
                 </button>
+                <button
+                  onClick={() => setShowBusinessSettingsModal(true)}
+                  className="flex items-center text-gray-700 hover:text-blue-600"
+                >
+                  <Settings className="h-5 w-5 mr-2" />
+                  Business Info
+                </button>
               </div>
               <div className="flex gap-3">
                 <button
@@ -480,13 +498,259 @@ export default function InvoiceManagement() {
             <div className="flex-1 overflow-y-auto p-6 bg-gray-100">
               <div className={`mx-auto ${showPreview ? '' : 'hidden'}`}>
                 <div ref={printRef}>
-                  <PrintInvoice invoice={selectedInvoice} companyLogo={companyLogo} showPreview={showPreview} />
+                  <PrintInvoice
+                    invoice={selectedInvoice}
+                    companyLogo={businessInfo.logoUrl}
+                    showPreview={showPreview}
+                    businessInfo={businessInfo}
+                  />
                 </div>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Business Information Settings Modal */}
+      {showBusinessSettingsModal && (
+        <BusinessSettingsModal
+          businessInfo={businessInfo}
+          setBusinessInfo={updateBusinessInfo}
+          onClose={() => setShowBusinessSettingsModal(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+interface BusinessSettingsModalProps {
+  businessInfo: BusinessInfo
+  setBusinessInfo: (newInfo: BusinessInfo) => void
+  onClose: () => void
+}
+
+function BusinessSettingsModal({ businessInfo, setBusinessInfo, onClose }: BusinessSettingsModalProps) {
+  const [tempBusinessInfo, setTempBusinessInfo] = useState({ ...businessInfo })
+  const [logoPreview, setLogoPreview] = useState<string | null>(businessInfo.logoUrl)
+  const [saveSuccess, setSaveSuccess] = useState(false)
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setTempBusinessInfo(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const result = reader.result as string
+        setLogoPreview(result)
+        setTempBusinessInfo(prev => ({ ...prev, logoUrl: result }))
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleSave = () => {
+    setBusinessInfo(tempBusinessInfo)
+    setSaveSuccess(true)
+    setTimeout(() => {
+      setSaveSuccess(false)
+      onClose()
+    }, 1500)
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-6">
+      <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+          <h2 className="text-xl font-bold text-gray-900">Business Information Settings</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 focus:outline-none"
+          >
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {saveSuccess ? (
+          <div className="flex-1 flex items-center justify-center p-8">
+            <div className="text-center">
+              <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Settings Saved</h3>
+              <p className="text-gray-600">Your business information has been updated successfully.</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Company Logo</h3>
+                  <div className="flex items-start space-x-6">
+                    <div className="w-40 h-20 bg-gray-100 border border-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
+                      {logoPreview ? (
+                        <img
+                          src={logoPreview}
+                          alt="Company Logo"
+                          className="max-w-full max-h-full object-contain"
+                        />
+                      ) : (
+                        <span className="text-gray-400">No logo</span>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block mb-2">
+                        <span className="sr-only">Choose logo</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLogoChange}
+                          className="block w-full text-sm text-gray-500
+                            file:mr-4 file:py-2 file:px-4
+                            file:rounded-lg file:border-0
+                            file:text-sm file:font-medium
+                            file:bg-blue-50 file:text-blue-700
+                            hover:file:bg-blue-100"
+                        />
+                      </label>
+                      <p className="text-xs text-gray-500">
+                        Recommended size: 150 x 60px. PNG or JPEG.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Company Name
+                    </label>
+                    <input
+                      type="text"
+                      name="companyName"
+                      value={tempBusinessInfo.companyName}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Street Address
+                    </label>
+                    <input
+                      type="text"
+                      name="address"
+                      value={tempBusinessInfo.address}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      City
+                    </label>
+                    <input
+                      type="text"
+                      name="city"
+                      value={tempBusinessInfo.city}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        State
+                      </label>
+                      <input
+                        type="text"
+                        name="state"
+                        value={tempBusinessInfo.state}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        ZIP Code
+                      </label>
+                      <input
+                        type="text"
+                        name="zipCode"
+                        value={tempBusinessInfo.zipCode}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Phone
+                    </label>
+                    <input
+                      type="text"
+                      name="phone"
+                      value={tempBusinessInfo.phone}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={tempBusinessInfo.email}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Website
+                    </label>
+                    <input
+                      type="text"
+                      name="website"
+                      value={tempBusinessInfo.website}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#2D6BFF] hover:bg-[#2D6BFF]/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Save Changes
+              </button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   )
 } 

@@ -2,6 +2,7 @@
 
 import { forwardRef, useEffect, useState } from 'react'
 import Image from 'next/image'
+import { BusinessInfo } from '@/contexts/BusinessContext'
 
 interface PrintInvoiceProps {
   invoice: {
@@ -25,9 +26,15 @@ interface PrintInvoiceProps {
   }
   companyLogo?: string
   showPreview?: boolean
+  businessInfo?: BusinessInfo
 }
 
-const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(({ invoice, companyLogo, showPreview }, ref) => {
+const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(({
+  invoice,
+  companyLogo,
+  showPreview,
+  businessInfo
+}, ref) => {
   const [logoError, setLogoError] = useState(false);
   const [previewMode, setPreviewMode] = useState(showPreview || false);
 
@@ -41,6 +48,12 @@ const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(({ invoice, c
   const handleLogoError = () => {
     setLogoError(true);
   };
+
+  // Format company address
+  const formatAddress = () => {
+    if (!businessInfo) return 'City, State 12345';
+    return `${businessInfo.city}, ${businessInfo.state} ${businessInfo.zipCode}`;
+  }
 
   return (
     <div
@@ -81,11 +94,17 @@ const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(({ invoice, c
               />
             </div>
           ) : (
-            <h2 className="text-xl font-bold text-gray-900">Family Mattress</h2>
+            <h2 className="text-xl font-bold text-gray-900">{businessInfo?.companyName || 'Family Mattress'}</h2>
           )}
-          <p className="text-gray-600">123 Furniture Street</p>
-          <p className="text-gray-600">City, State 12345</p>
-          <p className="text-gray-600">Phone: (555) 123-4567</p>
+          <p className="text-gray-600">{businessInfo?.address || '123 Furniture Street'}</p>
+          <p className="text-gray-600">{formatAddress()}</p>
+          <p className="text-gray-600">Phone: {businessInfo?.phone || '(555) 123-4567'}</p>
+          {businessInfo?.email && (
+            <p className="text-gray-600">Email: {businessInfo.email}</p>
+          )}
+          {businessInfo?.website && (
+            <p className="text-gray-600">Web: {businessInfo.website}</p>
+          )}
         </div>
       </div>
 
@@ -168,7 +187,10 @@ const PrintInvoice = forwardRef<HTMLDivElement, PrintInvoiceProps>(({ invoice, c
       <div className="text-center text-gray-600 text-sm mt-16">
         <p>Thank you for your business!</p>
         <p className="mt-1">Payment is due by {invoice.dueDate}</p>
-        <p className="mt-4">For questions regarding this invoice, please contact us at (555) 123-4567</p>
+        <p className="mt-4">For questions regarding this invoice, please contact us at {businessInfo?.phone || '(555) 123-4567'}</p>
+        {businessInfo?.email && (
+          <p className="mt-1">or via email at {businessInfo.email}</p>
+        )}
       </div>
     </div>
   )

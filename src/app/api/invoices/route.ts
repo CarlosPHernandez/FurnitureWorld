@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
 import { Database } from '@/types/supabase'
 
@@ -45,12 +44,8 @@ export async function POST(request: Request) {
     // Create a Supabase admin client with the service role key to bypass RLS
     const supabase = createClient<Database>(supabaseUrl, supabaseServiceKey)
 
-    // Get auth status for debugging
-    const cookieStore = cookies()
-    if (cookieStore) {
-      const authCookie = cookieStore.get('sb-auth-token')
-      console.log('Auth cookie exists:', !!authCookie)
-    }
+    // No need to check cookies since we're using the service role key
+    console.log('Using service role key for authentication bypass')
 
     // Get the invoice data from the request
     const invoiceData = await request.json()
