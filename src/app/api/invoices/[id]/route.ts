@@ -152,6 +152,8 @@ export async function PATCH(
     // Map incoming fields to database column names
     if (updateData.status !== undefined) updateObject.status = updateData.status;
     if (updateData.paidDate !== undefined) updateObject.paid_date = updateData.paidDate;
+    if (updateData.date !== undefined) updateObject.date = updateData.date;
+    if (updateData.dueDate !== undefined) updateObject.due_date = updateData.dueDate;
 
     // Always update the updated_at timestamp
     updateObject.updated_at = new Date().toISOString();

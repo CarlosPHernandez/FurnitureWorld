@@ -17,12 +17,12 @@ export interface BusinessInfo {
 
 // Default business information
 const defaultBusinessInfo: BusinessInfo = {
-  companyName: 'Family Mattress',
-  address: '123 Furniture Street',
-  city: 'City',
-  state: 'State',
-  zipCode: '12345',
-  phone: '(555) 123-4567',
+  companyName: 'Family Mattress and Furniture',
+  address: '924 E Webb Ave',
+  city: 'Burlington',
+  state: 'NC',
+  zipCode: '27217',
+  phone: '(336) 524-6378',
   email: 'info@familymattress.com',
   website: 'www.familymattress.com',
   logoUrl: '/Logo-matters-1.webp'

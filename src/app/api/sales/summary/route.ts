@@ -12,6 +12,9 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const timeframe = searchParams.get('timeframe') || 'month'
 
+    // Add logging to debug timeframe issues
+    console.log(`Processing sales data request for timeframe: ${timeframe}`)
+
     // Create a Supabase client with service role for full access
     const supabase = createClient<Database>(supabaseUrl, supabaseKey)
 
@@ -22,11 +25,17 @@ export async function GET(request: Request) {
     let startDate: Date
     let periodLabels: string[] = []
     let groupByFormat: string
+    let previousStartDate: Date // For comparison with previous period
 
     switch (timeframe) {
       case 'day':
         // Start of today
         startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0)
+        // Previous day for comparison
+        previousStartDate = new Date(startDate)
+        previousStartDate.setDate(previousStartDate.getDate() - 1)
+
+        // For day view, we'll use hourly data (9AM to 9PM business hours)
         groupByFormat = 'HH24'
         // Generate hour labels for today (9AM, 11AM, etc.)
         periodLabels = Array.from({ length: 12 }, (_, i) => {
@@ -39,6 +48,10 @@ export async function GET(request: Request) {
         // Start of current week (Sunday)
         const dayOfWeek = now.getDay()
         startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek, 0, 0, 0)
+        // Previous week for comparison
+        previousStartDate = new Date(startDate)
+        previousStartDate.setDate(previousStartDate.getDate() - 7)
+
         groupByFormat = 'D'
         // Generate day of week labels (Sun, Mon, etc.)
         const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -48,6 +61,10 @@ export async function GET(request: Request) {
       case 'year':
         // Start of current year
         startDate = new Date(now.getFullYear(), 0, 1, 0, 0, 0)
+        // Previous year for comparison
+        previousStartDate = new Date(startDate)
+        previousStartDate.setFullYear(previousStartDate.getFullYear() - 1)
+
         groupByFormat = 'MM'
         // Generate month labels (Jan, Feb, etc.)
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -58,16 +75,27 @@ export async function GET(request: Request) {
       default:
         // Start of current month
         startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0)
+        // Previous month for comparison
+        previousStartDate = new Date(startDate)
+        previousStartDate.setMonth(previousStartDate.getMonth() - 1)
+
         groupByFormat = 'DD'
-        // Generate week labels (Week 1, Week 2, etc.)
-        periodLabels = Array.from({ length: 5 }, (_, i) => `Week ${i + 1}`)
+        // Generate day labels (1-31)
+        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+        periodLabels = Array.from({ length: daysInMonth }, (_, i) => `${i + 1}`)
         break
     }
 
-    // Format date for SQL query
-    const formattedStartDate = startDate.toISOString()
+    // Log date ranges for debugging
+    console.log(`Date range for ${timeframe}: ${startDate.toISOString()} to ${now.toISOString()}`)
+    console.log(`Previous period: ${previousStartDate.toISOString()} to ${startDate.toISOString()}`)
 
-    // 1. Get total sales from invoices table
+    // Format dates for SQL query
+    const formattedStartDate = startDate.toISOString()
+    const formattedPreviousStartDate = previousStartDate.toISOString()
+
+    // CURRENT PERIOD DATA
+    // 1. Get total sales from invoices table for current period
     const { data: invoiceData, error: invoiceError } = await supabase
       .from('invoices')
       .select('id, total, date, status')
@@ -82,7 +110,7 @@ export async function GET(request: Request) {
       )
     }
 
-    // 2. Get credit data from credit_accounts table
+    // 2. Get credit data from credit_accounts table for current period
     const { data: creditData, error: creditError } = await supabase
       .from('credit_accounts')
       .select('id, total_amount, created_at, items_financed')
@@ -97,7 +125,41 @@ export async function GET(request: Request) {
       )
     }
 
-    // Calculate totals
+    // PREVIOUS PERIOD DATA
+    // 1. Get total sales from invoices table for previous period
+    const { data: previousInvoiceData, error: previousInvoiceError } = await supabase
+      .from('invoices')
+      .select('id, total, date, status')
+      .gte('date', formattedPreviousStartDate)
+      .lt('date', formattedStartDate)
+      .order('date', { ascending: true })
+
+    if (previousInvoiceError) {
+      console.error('Error fetching previous invoice data:', previousInvoiceError)
+      return NextResponse.json(
+        { error: 'Error fetching previous invoice data' },
+        { status: 500 }
+      )
+    }
+
+    // 2. Get credit data from credit_accounts table for previous period
+    const { data: previousCreditData, error: previousCreditError } = await supabase
+      .from('credit_accounts')
+      .select('id, total_amount, created_at, items_financed')
+      .gte('created_at', formattedPreviousStartDate)
+      .lt('created_at', formattedStartDate)
+      .order('created_at', { ascending: true })
+
+    if (previousCreditError) {
+      console.error('Error fetching previous credit data:', previousCreditError)
+      return NextResponse.json(
+        { error: 'Error fetching previous credit data' },
+        { status: 500 }
+      )
+    }
+
+    // CURRENT PERIOD CALCULATIONS
+    // Calculate totals for current period
     const totalInvoiceSales = invoiceData.reduce((sum, invoice) => sum + (invoice.total || 0), 0)
     const totalCreditSales = creditData.reduce((sum, account) => sum + (account.total_amount || 0), 0)
 
@@ -105,13 +167,45 @@ export async function GET(request: Request) {
     const cashSales = totalInvoiceSales // Assuming all invoice sales are cash sales
     const creditSales = totalCreditSales
 
-    // Calculate customer count
+    // Calculate customer count for current period
     const invoiceCustomers = invoiceData.length
     const creditCustomers = creditData.length
     const totalCustomers = invoiceCustomers + creditCustomers
 
-    // Calculate average sale
+    // Calculate average sale for current period
     const averageSale = totalSales / (totalCustomers || 1) // Avoid division by zero
+
+    // PREVIOUS PERIOD CALCULATIONS
+    // Calculate totals for previous period
+    const previousTotalInvoiceSales = previousInvoiceData.reduce((sum, invoice) => sum + (invoice.total || 0), 0)
+    const previousTotalCreditSales = previousCreditData.reduce((sum, account) => sum + (account.total_amount || 0), 0)
+
+    const previousTotalSales = previousTotalInvoiceSales + previousTotalCreditSales
+    const previousCashSales = previousTotalInvoiceSales
+    const previousCreditSales = previousTotalCreditSales
+
+    // Calculate customer count for previous period
+    const previousInvoiceCustomers = previousInvoiceData.length
+    const previousCreditCustomers = previousCreditData.length
+    const previousTotalCustomers = previousInvoiceCustomers + previousCreditCustomers
+
+    // Calculate average sale for previous period
+    const previousAverageSale = previousTotalSales / (previousTotalCustomers || 1)
+
+    // GROWTH CALCULATIONS
+    // Calculate growth percentages (handling division by zero)
+    const calculateGrowth = (current: number, previous: number) => {
+      if (previous === 0) {
+        return current > 0 ? 100 : 0; // 100% growth if previous was zero and current is positive
+      }
+      return ((current - previous) / previous) * 100;
+    };
+
+    const totalSalesGrowth = calculateGrowth(totalSales, previousTotalSales)
+    const creditSalesGrowth = calculateGrowth(creditSales, previousCreditSales)
+    const cashSalesGrowth = calculateGrowth(cashSales, previousCashSales)
+    const customerCountGrowth = calculateGrowth(totalCustomers, previousTotalCustomers)
+    const averageSaleGrowth = calculateGrowth(averageSale, previousAverageSale)
 
     // Process categorized sales data
     // Extract categories from credit accounts and invoices
@@ -218,44 +312,46 @@ export async function GET(request: Request) {
         periodSales[month].cash += invoice.total || 0
       })
     }
-    else {
-      // Month view - group by week
-      const weeks: { [key: string]: { sales: number, credit: number, cash: number } } = {}
-
-      // Initialize the weeks
-      periodLabels.forEach((label, index) => {
-        weeks[label] = { sales: 0, credit: 0, cash: 0 }
-      })
+    else if (timeframe === 'month') {
+      // Group by day of month (not week) for month view
+      periodSales = periodLabels.map((dayLabel) => ({
+        month: dayLabel,
+        sales: 0,
+        credit: 0,
+        cash: 0
+      }))
 
       creditData.forEach(account => {
         const day = new Date(account.created_at).getDate()
-        const weekNumber = Math.floor(day / 7) + 1
-        const weekLabel = `Week ${weekNumber}`
-
-        if (weeks[weekLabel]) {
-          weeks[weekLabel].sales += account.total_amount || 0
-          weeks[weekLabel].credit += account.total_amount || 0
+        // Day is 1-based, so subtract 1 for zero-based array index
+        const index = day - 1
+        if (index >= 0 && index < periodSales.length) {
+          periodSales[index].sales += account.total_amount || 0
+          periodSales[index].credit += account.total_amount || 0
         }
       })
 
       invoiceData.forEach(invoice => {
         const day = new Date(invoice.date).getDate()
-        const weekNumber = Math.floor(day / 7) + 1
-        const weekLabel = `Week ${weekNumber}`
-
-        if (weeks[weekLabel]) {
-          weeks[weekLabel].sales += invoice.total || 0
-          weeks[weekLabel].cash += invoice.total || 0
+        // Day is 1-based, so subtract 1 for zero-based array index
+        const index = day - 1
+        if (index >= 0 && index < periodSales.length) {
+          periodSales[index].sales += invoice.total || 0
+          periodSales[index].cash += invoice.total || 0
         }
       })
+    }
+    else {
+      // Default fallback - should rarely be reached
+      console.log('Using default period structure - unexpected timeframe:', timeframe)
 
-      // Convert the weeks object to the expected array format
-      periodSales = Object.entries(weeks).map(([label, data]) => ({
-        month: label,
-        sales: data.sales,
-        credit: data.credit,
-        cash: data.cash
-      }))
+      // Create a simple structure with just one period
+      periodSales = [{
+        month: 'All Data',
+        sales: totalSales,
+        credit: creditSales,
+        cash: cashSales
+      }]
     }
 
     // Format numbers to have at most 2 decimal places
@@ -274,7 +370,23 @@ export async function GET(request: Request) {
       customerCount: totalCustomers,
       averageSale: parseFloat(averageSale.toFixed(2)),
       monthlySales: periodSales,
-      salesByCategory: salesByCategory
+      salesByCategory: salesByCategory,
+      // Growth metrics
+      growth: {
+        totalSales: parseFloat(totalSalesGrowth.toFixed(1)),
+        creditSales: parseFloat(creditSalesGrowth.toFixed(1)),
+        cashSales: parseFloat(cashSalesGrowth.toFixed(1)),
+        customerCount: parseFloat(customerCountGrowth.toFixed(1)),
+        averageSale: parseFloat(averageSaleGrowth.toFixed(1))
+      },
+      // Add previous period data for reference
+      previousPeriod: {
+        totalSales: parseFloat(previousTotalSales.toFixed(2)),
+        creditSales: parseFloat(previousCreditSales.toFixed(2)),
+        cashSales: parseFloat(previousCashSales.toFixed(2)),
+        customerCount: previousTotalCustomers,
+        averageSale: parseFloat(previousAverageSale.toFixed(2))
+      }
     }
 
     return NextResponse.json(response)

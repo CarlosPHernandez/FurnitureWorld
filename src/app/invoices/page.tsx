@@ -73,7 +73,67 @@ export default function InvoiceManagement() {
     }
 
     fetchInvoices()
+
+    // Set up event listener for invoice date changes
+    const handleInvoiceDateChange = (event: CustomEvent) => {
+      const { invoiceId, field, value } = event.detail;
+      handleDateChange(invoiceId, field, value);
+    };
+
+    window.addEventListener('invoice-date-change', handleInvoiceDateChange as EventListener);
+
+    return () => {
+      window.removeEventListener('invoice-date-change', handleInvoiceDateChange as EventListener);
+    };
   }, [])
+
+  // Function to handle date changes
+  const handleDateChange = async (invoiceId: string, field: 'date' | 'dueDate', value: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      console.log(`Updating invoice ${invoiceId} ${field} to ${value}`);
+
+      const response = await fetch(`/api/invoices/${invoiceId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          [field]: value
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to update invoice ${field}`);
+      }
+
+      const updatedInvoice = await response.json();
+      console.log('Invoice updated successfully:', updatedInvoice);
+
+      // Update the invoice in the state
+      setInvoices(prevInvoices =>
+        prevInvoices.map(inv => (inv.id === updatedInvoice.id ? updatedInvoice : inv))
+      );
+
+      // If this is the currently selected invoice, update it too
+      if (selectedInvoice && selectedInvoice.id === updatedInvoice.id) {
+        setSelectedInvoice(updatedInvoice);
+      }
+
+      // Show success message
+      alert(`Invoice ${updatedInvoice.invoiceNumber} ${field === 'date' ? 'date' : 'due date'} updated successfully`);
+
+    } catch (err) {
+      console.error(`Error updating invoice ${field}:`, err);
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      alert(`Error: ${err instanceof Error ? err.message : 'An unknown error occurred'}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Fixed implementation of react-to-print
   const handlePrint = useReactToPrint({
@@ -377,12 +437,40 @@ export default function InvoiceManagement() {
                     <div className="text-sm font-medium text-gray-900">{invoice.invoiceNumber}</div>
                   </td>
                   <td className="px-6 py-5 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {invoice.customerName || 'Customer'}
+                    <div
+                      className="group flex items-start cursor-pointer"
+                      onClick={() => {
+                        setSelectedInvoice(invoice);
+                        setShowPrintModal(true);
+                      }}
+                    >
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-gray-900 group-hover:text-blue-600 flex items-center">
+                          {invoice.customerName || 'Customer'}
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4 ml-1 text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                          >
+                            <path fillRule="evenodd" d="M11 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H7a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                        {invoice.customerEmail && (
+                          <div className="text-sm text-gray-500 mt-1">{invoice.customerEmail}</div>
+                        )}
+                        {invoice.customerPhone && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            <span className="flex items-center">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                              </svg>
+                              {invoice.customerPhone}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    {invoice.customerEmail && (
-                      <div className="text-sm text-gray-500 mt-1">{invoice.customerEmail}</div>
-                    )}
                   </td>
                   <td className="px-6 py-5 whitespace-nowrap">
                     <div className="text-sm text-gray-900">{new Date(invoice.date).toLocaleDateString()}</div>
@@ -393,10 +481,59 @@ export default function InvoiceManagement() {
                   </td>
                   <td className="px-6 py-5 whitespace-nowrap">
                     <div className="flex items-center">
-                      {getStatusIcon(invoice.status)}
-                      <span className="ml-2 text-sm font-medium capitalize">
-                        {invoice.status}
-                      </span>
+                      <div className="relative group">
+                        <div className={`flex items-center px-2.5 py-1 rounded-md ${invoice.status === 'paid' ? 'bg-green-100 text-green-800' :
+                          invoice.status === 'overdue' ? 'bg-red-100 text-red-800' :
+                            invoice.status === 'cancelled' ? 'bg-gray-100 text-gray-800' :
+                              'bg-yellow-100 text-yellow-800'
+                          } cursor-pointer hover:shadow-sm transition-all`}>
+                          {getStatusIcon(invoice.status)}
+                          <span className="ml-1.5 text-sm font-medium capitalize">
+                            {invoice.status}
+                          </span>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+
+                        {/* Dropdown menu */}
+                        <div className="absolute left-0 mt-1 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10 hidden group-hover:block">
+                          <div className="py-1" role="menu" aria-orientation="vertical">
+                            <button
+                              onClick={() => handleStatusChange(invoice, 'pending')}
+                              className={`flex items-center w-full px-4 py-2 text-sm text-left ${invoice.status === 'pending' ? 'bg-gray-100 font-medium' : 'text-gray-700 hover:bg-gray-50'}`}
+                              role="menuitem"
+                            >
+                              <Clock className="h-4 w-4 mr-2 text-yellow-500" />
+                              <span>Pending</span>
+                            </button>
+                            <button
+                              onClick={() => handleStatusChange(invoice, 'paid')}
+                              className={`flex items-center w-full px-4 py-2 text-sm text-left ${invoice.status === 'paid' ? 'bg-gray-100 font-medium' : 'text-gray-700 hover:bg-gray-50'}`}
+                              role="menuitem"
+                            >
+                              <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
+                              <span>Paid</span>
+                            </button>
+                            <button
+                              onClick={() => handleStatusChange(invoice, 'overdue')}
+                              className={`flex items-center w-full px-4 py-2 text-sm text-left ${invoice.status === 'overdue' ? 'bg-gray-100 font-medium' : 'text-gray-700 hover:bg-gray-50'}`}
+                              role="menuitem"
+                            >
+                              <AlertCircle className="h-4 w-4 mr-2 text-red-500" />
+                              <span>Overdue</span>
+                            </button>
+                            <button
+                              onClick={() => handleStatusChange(invoice, 'cancelled')}
+                              className={`flex items-center w-full px-4 py-2 text-sm text-left ${invoice.status === 'cancelled' ? 'bg-gray-100 font-medium' : 'text-gray-700 hover:bg-gray-50'}`}
+                              role="menuitem"
+                            >
+                              <XCircle className="h-4 w-4 mr-2 text-gray-500" />
+                              <span>Cancelled</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </td>
                   <td className="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
@@ -407,51 +544,10 @@ export default function InvoiceManagement() {
                           setShowPrintModal(true)
                         }}
                         className="text-blue-600 hover:text-blue-900"
+                        title="View and print invoice"
                       >
                         <Printer className="h-5 w-5" />
                       </button>
-                      <div className="relative group">
-                        <button className="text-gray-600 hover:text-gray-900">
-                          <span className="sr-only">Change status</span>
-                          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </button>
-                        <div className="absolute right-0 mt-2 w-52 bg-white rounded-lg shadow-lg py-1 z-10 hidden group-hover:block border border-gray-100">
-                          <button
-                            onClick={() => handleStatusChange(invoice, 'pending')}
-                            className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                            disabled={invoice.status === 'pending'}
-                          >
-                            <Clock className="h-4 w-4 mr-2 text-yellow-500" />
-                            Mark as Pending
-                          </button>
-                          <button
-                            onClick={() => handleStatusChange(invoice, 'paid')}
-                            className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                            disabled={invoice.status === 'paid'}
-                          >
-                            <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
-                            Mark as Paid
-                          </button>
-                          <button
-                            onClick={() => handleStatusChange(invoice, 'overdue')}
-                            className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                            disabled={invoice.status === 'overdue'}
-                          >
-                            <AlertCircle className="h-4 w-4 mr-2 text-red-500" />
-                            Mark as Overdue
-                          </button>
-                          <button
-                            onClick={() => handleStatusChange(invoice, 'cancelled')}
-                            className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                            disabled={invoice.status === 'cancelled'}
-                          >
-                            <XCircle className="h-4 w-4 mr-2 text-gray-500" />
-                            Mark as Cancelled
-                          </button>
-                        </div>
-                      </div>
                     </div>
                   </td>
                 </tr>
@@ -475,7 +571,14 @@ export default function InvoiceManagement() {
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-6">
           <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-900">Invoice: {selectedInvoice.invoiceNumber}</h2>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Invoice: {selectedInvoice.invoiceNumber}</h2>
+                {selectedInvoice.id && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    You can edit dates and status directly in the preview below.
+                  </p>
+                )}
+              </div>
               <button
                 onClick={() => setShowPrintModal(false)}
                 className="text-gray-500 hover:text-gray-700 focus:outline-none"
